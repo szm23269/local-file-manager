@@ -1,0 +1,2747 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File Manager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1a1a1a;--bg2:#232323;--bg3:#2a2a2a;--bg4:#333;
+  --accent:#0078d4;--accent2:#005a9e;
+  --text:#d4d4d4;--text-dim:#888;--text-bright:#fff;
+  --border:#3d3d3d;--sel:#1e3a5f;--sel-border:#0078d4;
+  --hover:#2a2d2e;--tab-h:32px;--toolbar-h:40px;--status-h:24px;
+  --addr-h:30px;--header-h:28px;
+}
+body{background:var(--bg);color:var(--text);font:13px/1.4 "Segoe UI",system-ui,sans-serif;
+  display:flex;flex-direction:column;height:100vh;overflow:hidden;user-select:none}
+
+/* ── SIDEBAR（お気に入り＋ツリー） ── */
+#sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#sidebar.hidden{display:none}
+/* お気に入り */
+#fav-panel{display:flex;flex-direction:column;flex-shrink:0;height:168px;min-height:52px;overflow:hidden}
+.panel-header{height:28px;background:var(--bg3);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 8px 0 10px;font-size:11px;color:var(--text-dim);
+  gap:4px;flex-shrink:0}
+.panel-header-label{flex:1}
+.panel-header-btn{height:18px;background:transparent;border:1px solid transparent;
+  color:var(--text-dim);border-radius:3px;cursor:pointer;font-size:11px;
+  display:flex;align-items:center;justify-content:center;padding:0 4px;white-space:nowrap}
+.panel-header-btn:hover{background:var(--hover);border-color:var(--border);color:var(--text)}
+#fav-list{flex:1;overflow-y:auto;padding:2px 0}
+#fav-list::-webkit-scrollbar{width:4px}
+#fav-list::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.fav-item{display:flex;align-items:center;height:24px;padding:0 4px 0 6px;cursor:pointer;
+  font-size:12px;gap:5px}
+.fav-item:hover{background:var(--hover)}
+.fav-item:hover .fav-remove{opacity:1}
+.fav-item.fav-active{background:var(--sel)}
+.fav-icon{font-size:13px;flex-shrink:0}
+.fav-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fav-remove{width:14px;height:14px;opacity:0;border-radius:2px;display:flex;align-items:center;
+  justify-content:center;font-size:9px;color:var(--text-dim);flex-shrink:0;transition:opacity .1s}
+.fav-remove:hover{opacity:1!important;background:rgba(255,255,255,.15);color:#f87171}
+.fav-drop-hint{outline:1px dashed var(--accent)!important}
+.fav-handle{width:10px;cursor:grab;opacity:0;flex-shrink:0;font-size:11px;line-height:1;
+  color:var(--text-dim);user-select:none;text-align:center}
+.fav-item:hover .fav-handle{opacity:.45}
+.fav-handle:active{cursor:grabbing}
+.fav-item.fav-dragging{opacity:.35}
+.fav-item.fav-drop-above{box-shadow:inset 0 2px 0 var(--accent)}
+.fav-item.fav-drop-below{box-shadow:inset 0 -2px 0 var(--accent)}
+/* お気に入り↔ツリー 水平リサイズ */
+#fav-resize{height:4px;background:var(--border);cursor:row-resize;flex-shrink:0}
+#fav-resize:hover,#fav-resize.dragging{background:var(--accent)}
+/* ツリー内部 */
+#tree-inner{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:40px}
+.tree-header{height:28px;background:var(--bg3);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 10px;font-size:11px;color:var(--text-dim);
+  gap:6px;flex-shrink:0}
+.tree-header-label{flex:1}
+.tree-header-btn{cursor:pointer;padding:2px 4px;border-radius:2px}
+.tree-header-btn:hover{color:var(--text);background:var(--hover)}
+#tree-content{flex:1;overflow-y:auto;overflow-x:hidden;padding:2px 0}
+#tree-content::-webkit-scrollbar{width:6px}
+#tree-content::-webkit-scrollbar-track{background:var(--bg2)}
+#tree-content::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+.tree-node{display:flex;align-items:center;height:22px;cursor:pointer;
+  font-size:12px;white-space:nowrap;overflow:hidden;border-radius:2px}
+.tree-node:hover{background:var(--hover)}
+.tree-node.tree-active{background:var(--sel)}
+.tree-toggle{width:16px;height:16px;display:flex;align-items:center;justify-content:center;
+  font-size:8px;color:var(--text-dim);flex-shrink:0;border-radius:2px;margin-right:1px}
+.tree-toggle:hover{color:var(--text);background:rgba(255,255,255,.1)}
+.tree-node-icon{margin-right:4px;font-size:12px;flex-shrink:0}
+.tree-node-name{overflow:hidden;text-overflow:ellipsis;flex:1;padding-right:4px}
+.tree-loading{padding:8px 12px;font-size:11px;color:var(--text-dim)}
+/* サイドバー右端リサイズ */
+#sidebar-resize{width:4px;background:var(--border);cursor:col-resize;flex-shrink:0}
+#sidebar-resize.hidden{display:none}
+#sidebar-resize:hover,#sidebar-resize.dragging{background:var(--accent)}
+/* プレビューパネル左端リサイズ */
+#preview-resize{width:4px;background:var(--border);cursor:col-resize;flex-shrink:0}
+#preview-resize.hidden{display:none}
+#preview-resize:hover,#preview-resize.dragging{background:var(--accent)}
+
+/* ── TOOLBAR ── */
+#toolbar{height:var(--toolbar-h);background:var(--bg3);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 6px;gap:2px;flex-shrink:0}
+.tb-btn{height:28px;padding:0 8px;background:transparent;border:1px solid transparent;
+  color:var(--text);cursor:pointer;border-radius:3px;font-size:12px;display:flex;
+  align-items:center;gap:4px;white-space:nowrap}
+.tb-btn:hover{background:var(--hover);border-color:var(--border)}
+.tb-btn:active{background:var(--bg4)}
+.tb-btn.active{background:var(--sel);border-color:var(--sel-border)}
+.tb-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.tb-btn .icon{font-size:14px}
+
+/* ── MAIN AREA ── */
+#main{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* ── PANE ── */
+.pane{display:flex;flex-direction:column;flex:1;overflow:hidden;min-width:200px;
+  border-right:1px solid var(--border)}
+.pane:last-of-type{border-right:none}
+.pane.active .tab-bar{border-bottom-color:var(--accent)}
+
+/* TAB BAR */
+.tab-bar{height:var(--tab-h);background:var(--bg3);border-bottom:2px solid var(--border);
+  display:flex;align-items:flex-end;padding:0 4px;gap:2px;overflow:hidden;flex-shrink:0}
+.tab{height:26px;padding:0 10px;background:var(--bg4);border:1px solid var(--border);
+  border-bottom:none;border-radius:4px 4px 0 0;cursor:pointer;display:flex;align-items:center;
+  gap:6px;max-width:180px;min-width:60px;font-size:12px;color:var(--text-dim)}
+.tab.active{background:var(--bg2);color:var(--text-bright);border-bottom:2px solid var(--bg2)}
+.tab:hover:not(.active){background:var(--hover)}
+.tab-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab-close{width:14px;height:14px;border-radius:2px;display:flex;align-items:center;
+  justify-content:center;font-size:10px;flex-shrink:0;color:var(--text-dim)}
+.tab-close:hover{background:rgba(255,255,255,.15);color:var(--text-bright)}
+.tab-add{height:22px;width:22px;background:transparent;border:1px solid transparent;
+  border-radius:3px;cursor:pointer;color:var(--text-dim);font-size:16px;display:flex;
+  align-items:center;justify-content:center;flex-shrink:0;margin-left:2px}
+.tab-add:hover{background:var(--hover);border-color:var(--border);color:var(--text)}
+
+/* ADDRESS BAR */
+.addr-bar{height:var(--addr-h);background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 6px;gap:4px;flex-shrink:0}
+.addr-nav{width:22px;height:22px;background:transparent;border:none;color:var(--text-dim);
+  cursor:pointer;border-radius:3px;font-size:14px;display:flex;align-items:center;justify-content:center}
+.addr-nav:hover{background:var(--hover);color:var(--text)}
+.addr-nav:disabled{opacity:.3;cursor:default}
+.addr-crumbs{flex:1;height:22px;background:var(--bg4);border:1px solid var(--border);
+  border-radius:3px;display:flex;align-items:center;overflow:hidden;cursor:text;
+  padding:0 4px;min-width:0}
+.crumb{padding:1px 5px;color:var(--text-dim);font-size:12px;white-space:nowrap;
+  cursor:pointer;border-radius:2px;flex-shrink:0;line-height:20px}
+.crumb:hover{background:var(--hover);color:var(--text)}
+.crumb.crumb-active{color:var(--text)}
+.crumb-sep{color:var(--text-dim);font-size:10px;opacity:.45;flex-shrink:0}
+.addr-input{flex:1;height:22px;background:var(--bg4);border:1px solid var(--accent);
+  color:var(--text);border-radius:3px;padding:0 6px;font-size:12px;outline:none;display:none}
+.addr-input.editing{display:block}
+.addr-copy{width:22px;height:22px;background:transparent;border:none;color:var(--text-dim);
+  cursor:pointer;border-radius:3px;font-size:13px;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;padding:0}
+.addr-copy:hover{background:var(--hover);color:var(--text)}
+
+/* FILE LIST HEADER */
+.list-header{height:var(--header-h);background:var(--bg3);border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:1fr 80px 120px 60px;align-items:center;
+  padding:0 4px;gap:4px;flex-shrink:0;font-size:11px;color:var(--text-dim)}
+.list-header span{cursor:pointer;padding:2px 4px;border-radius:2px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.list-header span:hover{background:var(--hover);color:var(--text)}
+.list-header span.sort-asc::after{content:" ▲"}
+.list-header span.sort-desc::after{content:" ▼"}
+
+/* FILE LIST */
+.file-list{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
+.file-list::-webkit-scrollbar{width:8px}
+.file-list::-webkit-scrollbar-track{background:var(--bg2)}
+.file-list::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+.file-list::-webkit-scrollbar-thumb:hover{background:#555}
+
+.file-row{display:grid;grid-template-columns:1fr 80px 120px 60px;align-items:center;
+  height:22px;padding:0 4px;gap:4px;cursor:pointer;font-size:12px}
+.file-row:hover{background:var(--hover)}
+.file-row.selected{background:var(--sel)}
+.file-row.selected:hover{background:var(--sel)}
+.file-row .f-name{display:flex;align-items:center;gap:5px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.file-row .f-icon{font-size:13px;flex-shrink:0}
+.file-row .f-name-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-row .f-size{text-align:right;color:var(--text-dim);font-size:11px}
+.file-row .f-date{color:var(--text-dim);font-size:11px}
+.file-row .f-ext{color:var(--text-dim);font-size:11px;text-transform:uppercase}
+.file-row.is-dir .f-name-text{color:#80c8ff}
+.file-row.is-dir .f-size{color:var(--text-dim);font-style:italic}
+
+/* THUMBNAIL GRID */
+:root{--thumb-col:112px}
+.thumb-grid{display:grid!important;
+  grid-template-columns:repeat(auto-fill,minmax(var(--thumb-col),1fr));
+  gap:8px;padding:10px;overflow-y:auto;overflow-x:hidden;align-content:start}
+.thumb-item{display:flex;flex-direction:column;align-items:center;padding:6px 4px 5px;
+  border-radius:5px;cursor:default;user-select:none;border:1px solid transparent;min-width:0}
+.thumb-item:hover{background:var(--hover);border-color:var(--border)}
+.thumb-item.selected{background:var(--sel);border-color:var(--sel-border,var(--accent))}
+.thumb-img-wrap{width:calc(var(--thumb-col) - 22px);height:calc((var(--thumb-col) - 22px) * 0.75);
+  display:flex;align-items:center;justify-content:center;position:relative;
+  overflow:hidden;border-radius:3px;background:var(--bg3);flex-shrink:0}
+.thumb-img-wrap img,.thumb-img-wrap video{max-width:100%;max-height:100%;
+  object-fit:contain;display:block}
+.thumb-img-wrap video{cursor:pointer}
+.vid-badge{position:absolute;bottom:3px;right:3px;font-size:9px;line-height:1;
+  background:rgba(0,0,0,.55);color:#fff;border-radius:2px;padding:1px 4px;
+  pointer-events:none;letter-spacing:.3px}
+.thumb-item:hover .vid-badge{background:rgba(var(--accent-rgb,99,102,241),.8)}
+.thumb-icon-lg{font-size:calc((var(--thumb-col) - 22px) * 0.42);line-height:1;user-select:none}
+.thumb-label{font-size:11px;color:var(--text);text-align:center;width:100%;margin-top:5px;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  word-break:break-all;line-height:1.3}
+.thumb-item.is-dir .thumb-label{color:#80c8ff}
+/* サイズスライダー */
+#thumb-size-ctrl{display:flex;align-items:center;gap:5px;margin-left:2px}
+#thumb-size-ctrl input[type=range]{width:90px;accent-color:var(--accent);cursor:pointer;
+  appearance:none;-webkit-appearance:none;height:18px;background:transparent;outline:none}
+#thumb-size-ctrl input[type=range]::-webkit-slider-runnable-track{
+  height:3px;background:var(--border);border-radius:2px}
+#thumb-size-ctrl input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+  background:var(--accent);cursor:pointer;margin-top:-5px}
+#thumb-size-ctrl input[type=range]::-moz-range-track{
+  height:3px;background:var(--border);border-radius:2px}
+#thumb-size-ctrl input[type=range]::-moz-range-thumb{
+  width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer;border:none}
+#thumb-size-ctrl .sz-icon{font-size:13px;color:var(--text-dim);user-select:none;line-height:1;
+  opacity:.7}
+
+/* RESIZE DIVIDER */
+#divider{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;
+  position:relative;z-index:10}
+#divider:hover,#divider.dragging{background:var(--accent)}
+
+/* PREVIEW PANEL */
+#preview-panel{width:320px;background:var(--bg2);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#preview-panel.hidden{display:none}
+#preview-panel .preview-header{height:28px;background:var(--bg3);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 10px;font-size:11px;color:var(--text-dim);
+  justify-content:space-between}
+#preview-panel .preview-close{cursor:pointer;color:var(--text-dim)}
+#preview-panel .preview-close:hover{color:var(--text)}
+#preview-content{flex:1;overflow:auto;padding:10px}
+#preview-content img{max-width:100%;max-height:100%;object-fit:contain;display:block;margin:auto}
+#preview-content.img-mode{display:flex;align-items:center;justify-content:center;
+  overflow:hidden;padding:0}
+#preview-content.img-mode img{max-width:100%;max-height:100%;object-fit:contain;margin:0}
+#preview-content pre{font-family:"Cascadia Code","Fira Code","Consolas",monospace;
+  font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-all;
+  color:#9cdcfe}
+.preview-empty{display:flex;align-items:center;justify-content:center;height:100%;
+  color:var(--text-dim);font-size:13px;text-align:center}
+.preview-binary{padding:20px;text-align:center;color:var(--text-dim)}
+.preview-binary .big-icon{font-size:48px;display:block;margin-bottom:12px}
+
+/* 動画 */
+.preview-video{padding:10px;text-align:center;height:100%;display:flex;align-items:center;justify-content:center}
+.preview-video video{max-width:100%;max-height:280px;border-radius:4px;background:#000;outline:none}
+/* 音声 */
+.preview-audio{padding:24px 16px;text-align:center}
+.preview-audio .big-icon{font-size:52px;display:block;margin-bottom:12px}
+.preview-audio audio{width:100%;margin-top:8px}
+/* PDF */
+#preview-content.pdf-mode{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.pdf-scroll{flex:1;overflow-y:auto;background:#525659;padding:10px;min-height:0;
+  display:flex;flex-direction:column;gap:8px;align-items:center}
+.pdf-scroll canvas{display:block;box-shadow:0 2px 8px rgba(0,0,0,.5);max-width:100%}
+.pdf-toolbar{height:28px;display:flex;align-items:center;gap:10px;padding:0 10px;
+  background:var(--bg3);border-top:1px solid var(--border);font-size:11px;flex-shrink:0}
+.pdf-toolbar a{color:var(--accent);text-decoration:none}
+.pdf-toolbar a:hover{text-decoration:underline}
+/* CSV テーブル */
+.preview-csv{overflow:auto;height:100%}
+.preview-csv table{border-collapse:collapse;font-size:11px}
+.preview-csv th{background:var(--bg3);padding:3px 8px;border:1px solid var(--border);
+  position:sticky;top:0;z-index:1;color:var(--text-bright);text-align:left;white-space:nowrap}
+.preview-csv td{padding:2px 8px;border:1px solid var(--border);white-space:nowrap;
+  max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.preview-csv tr:hover td{background:var(--hover)}
+.preview-csv .csv-row-num{color:var(--text-dim);background:var(--bg3);user-select:none;
+  position:sticky;left:0;border-right:2px solid var(--border)}
+/* アーカイブ */
+.preview-archive{overflow-y:auto;height:100%}
+.preview-archive-hdr{display:grid;grid-template-columns:1fr 70px;padding:3px 10px;
+  background:var(--bg3);border-bottom:1px solid var(--border);font-size:11px;
+  color:var(--text-dim);position:sticky;top:0;z-index:1}
+.preview-archive-row{display:grid;grid-template-columns:1fr 70px;padding:2px 10px;
+  border-bottom:1px solid rgba(255,255,255,.04);font-size:11px}
+.preview-archive-row:hover{background:var(--hover)}
+.arc-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arc-name.is-dir{color:#80c8ff}
+.arc-size{color:var(--text-dim);text-align:right}
+/* メタ情報パネル */
+#preview-meta{border-top:1px solid var(--border);background:var(--bg3);
+  overflow-y:auto;flex-shrink:0;display:none;max-height:220px}
+#preview-meta.visible{display:block}
+.meta-rows{padding:2px 0}
+.meta-row{display:flex;padding:3px 10px;font-size:11px;gap:6px;border-bottom:1px solid rgba(255,255,255,.04)}
+.meta-label{color:var(--text-dim);width:80px;flex-shrink:0;text-align:right}
+.meta-value{color:var(--text);word-break:break-all;flex:1}
+.btn-meta{cursor:pointer;padding:0 7px;height:20px;border-radius:3px;font-size:11px;
+  color:var(--text-dim);background:transparent;border:1px solid transparent;line-height:1}
+.btn-meta:hover{background:var(--hover);border-color:var(--border);color:var(--text)}
+.btn-meta.active{background:var(--sel);border-color:var(--sel-border);color:var(--text-bright)}
+
+/* SEARCH BAR */
+#search-bar{background:var(--bg3);border-bottom:1px solid var(--border);
+  padding:6px 8px;display:none;flex-shrink:0}
+#search-bar.visible{display:flex;gap:6px;align-items:center}
+#search-input{flex:1;height:26px;background:var(--bg4);border:1px solid var(--border);
+  color:var(--text);border-radius:3px;padding:0 8px;font-size:12px;outline:none}
+#search-input:focus{border-color:var(--accent)}
+#search-close{background:transparent;border:none;color:var(--text-dim);cursor:pointer;
+  font-size:16px}
+#search-close:hover{color:var(--text)}
+#search-results-info{font-size:11px;color:var(--text-dim);white-space:nowrap}
+
+/* STATUS BAR */
+#status{height:var(--status-h);background:var(--bg3);border-top:1px solid var(--border);
+  display:flex;align-items:center;padding:0 10px;gap:16px;font-size:11px;color:var(--text-dim);
+  flex-shrink:0}
+#status-left{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#status-right{white-space:nowrap}
+
+/* CONTEXT MENU */
+#ctx-menu{position:fixed;background:var(--bg3);border:1px solid var(--border);
+  border-radius:4px;box-shadow:0 4px 20px rgba(0,0,0,.6);z-index:1000;
+  padding:4px 0;min-width:160px;display:none}
+#ctx-menu.visible{display:block}
+.ctx-item{padding:6px 16px;cursor:pointer;font-size:12px;display:flex;
+  align-items:center;gap:8px}
+.ctx-item:hover{background:var(--sel)}
+.ctx-item.danger{color:#f87171}
+.ctx-sep{height:1px;background:var(--border);margin:4px 0}
+.ctx-item .ctx-key{margin-left:auto;color:var(--text-dim);font-size:10px}
+
+/* MODAL DIALOG */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;
+  display:none;align-items:center;justify-content:center}
+#modal-overlay.visible{display:flex}
+#modal{background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:20px;min-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.8)}
+#modal h3{margin-bottom:12px;font-size:14px;color:var(--text-bright)}
+#modal input{width:100%;height:30px;background:var(--bg4);border:1px solid var(--border);
+  color:var(--text);border-radius:3px;padding:0 8px;font-size:13px;outline:none;margin-bottom:14px}
+#modal input:focus{border-color:var(--accent)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.btn{height:28px;padding:0 16px;border-radius:3px;cursor:pointer;font-size:12px;border:none}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-default{background:var(--bg4);color:var(--text);border:1px solid var(--border)}
+.btn-default:hover{background:var(--hover)}
+.btn-danger{background:#b91c1c;color:#fff}
+.btn-danger:hover{background:#991b1b}
+
+/* LOADING */
+.loading-row{padding:20px;text-align:center;color:var(--text-dim);font-size:12px}
+.error-row{padding:20px;text-align:center;color:#f87171;font-size:12px}
+
+/* ── RENAMER ── */
+#renamer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:3000;
+  display:none;align-items:center;justify-content:center}
+#renamer-overlay.visible{display:flex}
+#renamer{background:var(--bg2);border:1px solid var(--border);border-radius:6px;
+  width:min(940px,96vw);height:min(640px,88vh);display:flex;flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,.85);overflow:hidden}
+#renamer-hdr{height:38px;background:var(--bg4);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 14px;font-size:13px;font-weight:600;
+  flex-shrink:0;gap:8px;border-radius:6px 6px 0 0}
+.ren-hdr-close{margin-left:auto;cursor:pointer;color:var(--text-dim);font-size:16px;
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:3px}
+.ren-hdr-close:hover{background:var(--hover);color:var(--text)}
+#renamer-body{flex:1;display:flex;min-height:0}
+/* left: modes + options */
+#renamer-left{width:252px;flex-shrink:0;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden}
+.ren-modes{padding:6px;display:flex;flex-direction:column;gap:1px;
+  border-bottom:1px solid var(--border);flex-shrink:0}
+.ren-mode-btn{padding:6px 10px;border-radius:3px;cursor:pointer;font-size:12px;
+  color:var(--text-dim);background:transparent;text-align:left;border:none;width:100%;
+  display:flex;align-items:center;gap:7px}
+.ren-mode-btn:hover{background:var(--hover);color:var(--text)}
+.ren-mode-btn.active{background:var(--sel);color:var(--text-bright)}
+.ren-mode-icon{font-size:13px;flex-shrink:0}
+.ren-opts{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:0}
+.ren-panel{display:none;flex-direction:column;gap:10px}
+.ren-panel.active{display:flex}
+.ren-field{display:flex;flex-direction:column;gap:3px}
+.ren-field>label{font-size:10px;color:var(--text-dim);text-transform:uppercase;
+  letter-spacing:.05em;font-weight:600}
+.ren-field input[type=text],.ren-field input[type=number],.ren-field select{
+  height:28px;background:var(--bg4);border:1px solid var(--border);color:var(--text);
+  border-radius:3px;padding:0 8px;font-size:12px;outline:none;width:100%}
+.ren-field input:focus,.ren-field select:focus{border-color:var(--accent)}
+.ren-checks,.ren-radios{display:flex;flex-direction:column;gap:5px}
+.ren-checks label,.ren-radios label{display:flex;align-items:center;gap:7px;
+  font-size:12px;cursor:pointer;color:var(--text);padding:2px 0}
+.ren-checks input,.ren-radios input{accent-color:var(--accent);flex-shrink:0}
+.ren-sep{height:1px;background:var(--border);margin:8px 0}
+/* right: preview */
+#renamer-right{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+#ren-prev-hdr{height:26px;background:var(--bg3);border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:1fr 18px 1fr 30px;align-items:center;
+  padding:0 10px;font-size:10px;color:var(--text-dim);text-transform:uppercase;
+  letter-spacing:.05em;flex-shrink:0;gap:4px;font-weight:600}
+#ren-prev-list{flex:1;overflow-y:auto}
+#ren-prev-list::-webkit-scrollbar{width:6px}
+#ren-prev-list::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+.ren-prow{display:grid;grid-template-columns:1fr 18px 1fr 30px;align-items:center;
+  height:24px;padding:0 10px;font-size:12px;gap:4px;
+  border-bottom:1px solid rgba(255,255,255,.04)}
+.ren-prow:hover{background:var(--hover)}
+.rp-old{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim)}
+.ren-prow.changed .rp-old{color:var(--text)}
+.rp-arr{color:var(--text-dim);font-size:10px;text-align:center}
+.rp-new{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim)}
+.ren-prow.changed .rp-new{color:#4ade80}
+.ren-prow.conflict .rp-new,.ren-prow.error .rp-new{color:#f87171}
+.rp-st{font-size:11px;text-align:center;color:var(--text-dim)}
+.ren-prow.changed .rp-st{color:#4ade80}
+.ren-prow.conflict .rp-st,.ren-prow.error .rp-st{color:#f87171}
+/* footer */
+#renamer-ftr{height:42px;border-top:1px solid var(--border);display:flex;
+  align-items:center;padding:0 12px;gap:8px;flex-shrink:0;background:var(--bg3)}
+#ren-ftr-st{flex:1;font-size:11px;color:var(--text-dim)}
+
+/* SEARCH RESULTS PANEL */
+#search-results-panel{flex:1;overflow:hidden;display:none;flex-direction:column}
+#search-results-panel.visible{display:flex}
+#search-results-header{height:var(--header-h);background:var(--bg3);border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:1fr 200px 80px 60px;align-items:center;
+  padding:0 4px;gap:4px;flex-shrink:0;font-size:11px;color:var(--text-dim)}
+#search-results-list{flex:1;overflow-y:auto;background:var(--bg)}
+.search-row{display:grid;grid-template-columns:1fr 200px 80px 60px;align-items:center;
+  height:22px;padding:0 4px;gap:4px;cursor:pointer;font-size:12px}
+.search-row:hover{background:var(--hover)}
+.search-row.selected{background:var(--sel)}
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <button class="tb-btn" onclick="FM.navBack()" id="btn-back" title="戻る (Alt+←)">
+    <span class="icon">◀</span>
+  </button>
+  <button class="tb-btn" onclick="FM.navForward()" id="btn-fwd" title="進む (Alt+→)">
+    <span class="icon">▶</span>
+  </button>
+  <button class="tb-btn" onclick="FM.navUp()" title="上へ (Backspace)">
+    <span class="icon">↑</span> 上へ
+  </button>
+  <button class="tb-btn" onclick="FM.refresh()" title="更新 (F5)">
+    <span class="icon">↺</span> 更新
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="FM.promptNewFolder()" title="新規フォルダ">
+    <span class="icon">📁</span> 新規フォルダ
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="FM.copySelected()" title="コピー (F5)">
+    <span class="icon">⧉</span> コピー
+  </button>
+  <button class="tb-btn" onclick="FM.moveSelected()" title="移動 (F6)">
+    <span class="icon">⇄</span> 移動
+  </button>
+  <button class="tb-btn" onclick="FM.deleteSelected()" title="削除 (Del)">
+    <span class="icon">🗑</span> 削除
+  </button>
+  <button class="tb-btn" onclick="Renamer.open()" title="バッチリネーマー (Shift+F2)">
+    <span class="icon">🏷</span> リネーム
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="FM.toggleSearch()" id="btn-search" title="検索 (Ctrl+F)">
+    <span class="icon">🔍</span> 検索
+  </button>
+  <button class="tb-btn" onclick="FM.togglePreview()" id="btn-preview" title="プレビュー (F3)">
+    <span class="icon">👁</span> プレビュー
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="FM.openHome()" title="ホームフォルダ">
+    <span class="icon">🏠</span>
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="Tree.toggle()" id="btn-tree" title="フォルダツリー (Ctrl+T)">
+    <span class="icon">🌳</span> ツリー
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="FM.toggleView()" id="btn-view" title="サムネイル表示 (V)">
+    <span class="icon">⊞</span> サムネイル
+  </button>
+  <div id="thumb-size-ctrl" class="hidden">
+    <span class="sz-icon">⊟</span>
+    <input type="range" id="thumb-slider" min="60" max="220" step="4" value="112"
+      oninput="FM.applyThumbSize(+this.value)" title="サムネイルサイズ">
+    <span class="sz-icon">⊞</span>
+  </div>
+</div>
+
+<!-- SEARCH BAR -->
+<div id="search-bar">
+  <span style="color:var(--text-dim);font-size:12px">検索:</span>
+  <input type="text" id="search-input" placeholder="ファイル名を入力...">
+  <span id="search-results-info"></span>
+  <button id="search-close" onclick="FM.toggleSearch()">✕</button>
+</div>
+
+<!-- MAIN AREA -->
+<div id="main">
+  <!-- SIDEBAR (お気に入り + ツリー) -->
+  <div id="sidebar" class="hidden">
+    <!-- お気に入り -->
+    <div id="fav-panel">
+      <div class="panel-header">
+        <span class="panel-header-label">★ お気に入り</span>
+        <button class="panel-header-btn" onclick="Favs.addCurrent()" title="現在のフォルダを追加">＋ 追加</button>
+      </div>
+      <div id="fav-list"></div>
+    </div>
+    <!-- お気に入り/ツリー 水平リサイズ -->
+    <div id="fav-resize" title="ドラッグしてサイズ変更"></div>
+    <!-- フォルダツリー -->
+    <div id="tree-inner">
+      <div class="tree-header">
+        <span class="tree-header-label">📂 フォルダツリー</span>
+        <span class="tree-header-btn" onclick="Tree.refresh()" title="更新">↺</span>
+        <span class="tree-header-btn" onclick="Tree.toggle()" title="閉じる">✕</span>
+      </div>
+      <div id="tree-content"><div class="tree-loading">読み込み中...</div></div>
+    </div>
+  </div>
+  <div id="sidebar-resize" class="hidden"></div>
+  <!-- LEFT PANE -->
+  <div class="pane active" id="pane-left" onclick="FM.setActive('left')">
+    <div class="tab-bar" id="tabs-left"></div>
+    <div class="addr-bar">
+      <button class="addr-nav" id="back-left" onclick="event.stopPropagation();FM.navBack('left')" title="戻る">◀</button>
+      <button class="addr-nav" id="fwd-left" onclick="event.stopPropagation();FM.navForward('left')" title="進む">▶</button>
+      <button class="addr-nav" onclick="event.stopPropagation();FM.navUp('left')" title="上へ">↑</button>
+      <div class="addr-crumbs" id="crumbs-left"
+        onclick="event.stopPropagation();FM.handleCrumbClick(event,'left')"
+        ondblclick="event.stopPropagation();FM.crumbStartEdit('left')"
+        title="クリック: 移動 / ダブルクリック: 編集"></div>
+      <input class="addr-input" id="addr-left" type="text"
+        onkeydown="FM.handleAddrKey(event,'left')"
+        onblur="FM.crumbEndEdit('left')"
+        onclick="event.stopPropagation()">
+      <button class="addr-copy" onclick="event.stopPropagation();FM.copyPath('left')" title="パスをコピー">⧉</button>
+    </div>
+    <div class="list-header" id="header-left">
+      <span data-sort="name">名前</span>
+      <span data-sort="size">サイズ</span>
+      <span data-sort="modified">更新日時</span>
+      <span data-sort="ext">種類</span>
+    </div>
+    <div class="file-list" id="list-left" tabindex="0"></div>
+  </div>
+
+  <!-- DIVIDER -->
+  <div id="divider"></div>
+
+  <!-- RIGHT PANE -->
+  <div class="pane" id="pane-right" onclick="FM.setActive('right')">
+    <div class="tab-bar" id="tabs-right"></div>
+    <div class="addr-bar">
+      <button class="addr-nav" id="back-right" onclick="event.stopPropagation();FM.navBack('right')" title="戻る">◀</button>
+      <button class="addr-nav" id="fwd-right" onclick="event.stopPropagation();FM.navForward('right')" title="進む">▶</button>
+      <button class="addr-nav" onclick="event.stopPropagation();FM.navUp('right')" title="上へ">↑</button>
+      <div class="addr-crumbs" id="crumbs-right"
+        onclick="event.stopPropagation();FM.handleCrumbClick(event,'right')"
+        ondblclick="event.stopPropagation();FM.crumbStartEdit('right')"
+        title="クリック: 移動 / ダブルクリック: 編集"></div>
+      <input class="addr-input" id="addr-right" type="text"
+        onkeydown="FM.handleAddrKey(event,'right')"
+        onblur="FM.crumbEndEdit('right')"
+        onclick="event.stopPropagation()">
+      <button class="addr-copy" onclick="event.stopPropagation();FM.copyPath('right')" title="パスをコピー">⧉</button>
+    </div>
+    <div class="list-header" id="header-right">
+      <span data-sort="name">名前</span>
+      <span data-sort="size">サイズ</span>
+      <span data-sort="modified">更新日時</span>
+      <span data-sort="ext">種類</span>
+    </div>
+    <div class="file-list" id="list-right" tabindex="0"></div>
+  </div>
+
+  <!-- プレビューリサイズハンドル -->
+  <div id="preview-resize" class="hidden"></div>
+  <!-- PREVIEW PANEL -->
+  <div id="preview-panel" class="hidden">
+    <div class="preview-header">
+      <span id="preview-title" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">プレビュー</span>
+      <button class="btn-meta" id="btn-meta" onclick="FM.toggleMeta()" title="メタ情報 (I)">ℹ</button>
+      <span class="preview-close" onclick="FM.togglePreview()" style="margin-left:4px">✕</span>
+    </div>
+    <div id="preview-content"><div class="preview-empty">ファイルを選択してください</div></div>
+    <div id="preview-meta"></div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="status">
+  <div id="status-left">準備完了</div>
+  <div id="status-right"></div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="FM.ctxOpen()">🔍 開く</div>
+  <div class="ctx-item" onclick="FM.ctxOpenOther()">↗ 反対側で開く</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="FM.copySelected()">⧉ コピー <span class="ctx-key">F5</span></div>
+  <div class="ctx-item" onclick="FM.moveSelected()">⇄ 移動 <span class="ctx-key">F6</span></div>
+  <div class="ctx-item" onclick="FM.promptRename()">✏ 名前変更 <span class="ctx-key">F2</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="FM.promptNewFolder()">📁 新規フォルダ</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="FM.deleteSelected()">🗑 削除 <span class="ctx-key">Del</span></div>
+</div>
+
+<!-- RENAMER -->
+<div id="renamer-overlay">
+  <div id="renamer">
+    <div id="renamer-hdr">
+      <span>🏷 バッチリネーマー</span>
+      <span id="ren-hdr-count"></span>
+      <span class="ren-hdr-close" onclick="Renamer.close()">✕</span>
+    </div>
+    <div id="renamer-body">
+      <!-- LEFT: モード + オプション -->
+      <div id="renamer-left">
+        <div class="ren-modes">
+          <button class="ren-mode-btn active" data-mode="replace" onclick="Renamer.setMode('replace')">
+            <span class="ren-mode-icon">🔍</span>検索 / 置換
+          </button>
+          <button class="ren-mode-btn" data-mode="number" onclick="Renamer.setMode('number')">
+            <span class="ren-mode-icon">🔢</span>連番付加
+          </button>
+          <button class="ren-mode-btn" data-mode="affix" onclick="Renamer.setMode('affix')">
+            <span class="ren-mode-icon">↔</span>前後追加
+          </button>
+          <button class="ren-mode-btn" data-mode="case" onclick="Renamer.setMode('case')">
+            <span class="ren-mode-icon">Aa</span>大文字 / 小文字
+          </button>
+          <button class="ren-mode-btn" data-mode="ext" onclick="Renamer.setMode('ext')">
+            <span class="ren-mode-icon">📎</span>拡張子変更
+          </button>
+          <button class="ren-mode-btn" data-mode="remove" onclick="Renamer.setMode('remove')">
+            <span class="ren-mode-icon">✂</span>文字削除
+          </button>
+        </div>
+        <div class="ren-opts" id="ren-opts">
+          <!-- 検索/置換 -->
+          <div class="ren-panel active" id="ren-panel-replace">
+            <div class="ren-field">
+              <label>検索</label>
+              <input type="text" id="ren-find" placeholder="検索するテキスト...">
+            </div>
+            <div class="ren-field">
+              <label>置換</label>
+              <input type="text" id="ren-repl" placeholder="置換後のテキスト（空=削除）">
+            </div>
+            <div class="ren-sep"></div>
+            <div class="ren-checks">
+              <label><input type="checkbox" id="ren-regex"> 正規表現を使用</label>
+              <label><input type="checkbox" id="ren-casesen"> 大文字/小文字を区別</label>
+            </div>
+          </div>
+          <!-- 連番 -->
+          <div class="ren-panel" id="ren-panel-number">
+            <div class="ren-field">
+              <label>挿入位置</label>
+              <select id="ren-num-pos">
+                <option value="prefix">先頭に追加</option>
+                <option value="suffix">末尾に追加</option>
+              </select>
+            </div>
+            <div class="ren-field">
+              <label>区切り文字</label>
+              <input type="text" id="ren-num-sep" value="_">
+            </div>
+            <div class="ren-field">
+              <label>開始番号</label>
+              <input type="number" id="ren-num-start" value="1" min="0">
+            </div>
+            <div class="ren-field">
+              <label>ステップ</label>
+              <input type="number" id="ren-num-step" value="1" min="1">
+            </div>
+            <div class="ren-field">
+              <label>桁数（0埋め）</label>
+              <input type="number" id="ren-num-digits" value="2" min="1" max="8">
+            </div>
+          </div>
+          <!-- 前後追加 -->
+          <div class="ren-panel" id="ren-panel-affix">
+            <div class="ren-field">
+              <label>プレフィックス（先頭に追加）</label>
+              <input type="text" id="ren-prefix" placeholder="先頭に付加するテキスト">
+            </div>
+            <div class="ren-field">
+              <label>サフィックス（末尾に追加）</label>
+              <input type="text" id="ren-suffix" placeholder="末尾に付加するテキスト">
+            </div>
+          </div>
+          <!-- 大文字/小文字 -->
+          <div class="ren-panel" id="ren-panel-case">
+            <div class="ren-radios">
+              <label><input type="radio" name="ren-case" value="upper"> UPPERCASE（すべて大文字）</label>
+              <label><input type="radio" name="ren-case" value="lower" checked> lowercase（すべて小文字）</label>
+              <label><input type="radio" name="ren-case" value="title"> Title Case（語頭大文字）</label>
+              <label><input type="radio" name="ren-case" value="sentence"> Sentence case（文頭大文字）</label>
+            </div>
+            <div class="ren-sep"></div>
+            <div class="ren-checks">
+              <label><input type="checkbox" id="ren-case-ext"> 拡張子にも適用</label>
+            </div>
+          </div>
+          <!-- 拡張子変更 -->
+          <div class="ren-panel" id="ren-panel-ext">
+            <div class="ren-field">
+              <label>新しい拡張子</label>
+              <input type="text" id="ren-new-ext" placeholder=".png">
+            </div>
+          </div>
+          <!-- 文字削除 -->
+          <div class="ren-panel" id="ren-panel-remove">
+            <div class="ren-field">
+              <label>先頭から N 文字削除</label>
+              <input type="number" id="ren-rm-front" value="0" min="0">
+            </div>
+            <div class="ren-field">
+              <label>末尾から N 文字削除</label>
+              <input type="number" id="ren-rm-back" value="0" min="0">
+            </div>
+          </div>
+          <!-- 共通 -->
+          <div class="ren-sep" id="ren-apply-sep"></div>
+          <div class="ren-field" id="ren-apply-field">
+            <label>適用対象</label>
+            <select id="ren-apply-to">
+              <option value="name">ファイル名のみ（拡張子除く）</option>
+              <option value="ext">拡張子のみ</option>
+              <option value="both">ファイル名 + 拡張子</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- RIGHT: プレビュー -->
+      <div id="renamer-right">
+        <div id="ren-prev-hdr">
+          <span>変更前</span><span></span><span>変更後</span><span style="text-align:center">状態</span>
+        </div>
+        <div id="ren-prev-list"></div>
+      </div>
+    </div>
+    <div id="renamer-ftr">
+      <span id="ren-ftr-st"></span>
+      <button class="btn btn-default" onclick="Renamer.close()">キャンセル</button>
+      <button class="btn btn-primary" id="ren-apply-btn" onclick="Renamer.apply()">リネーム実行</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h3 id="modal-title">フォルダ名を入力</h3>
+    <input type="text" id="modal-input" autocomplete="off">
+    <div class="modal-btns">
+      <button class="btn btn-default" onclick="FM.closeModal()">キャンセル</button>
+      <button class="btn btn-primary" id="modal-ok" onclick="FM.modalConfirm()">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────── API ────────────────────────────────────────────────────
+const API = {
+  async call(url, opts={}) {
+    const res = await fetch(url, opts);
+    if (!res.ok) {
+      let msg;
+      try { msg = (await res.json()).detail; } catch { msg = await res.text(); }
+      throw new Error(msg || `HTTP ${res.status}`);
+    }
+    return res.json();
+  },
+  listFiles: (path) => API.call(`/files?path=${enc(path)}`),
+  getTree:   (path) => API.call(`/tree?path=${enc(path)}`),
+  copy:  (src,dst) => API.call('/copy',  {method:'POST', headers:json, body:JSON.stringify({src,dst})}),
+  move:  (src,dst) => API.call('/move',  {method:'POST', headers:json, body:JSON.stringify({src,dst})}),
+  del:   (path)    => API.call('/delete',{method:'DELETE',headers:json, body:JSON.stringify({path})}),
+  preview:(path)   => API.call(`/preview?path=${enc(path)}`),
+  search:(q,path)  => API.call(`/search?q=${enc(q)}&path=${enc(path)}`),
+  mkdir: (path)    => API.call('/mkdir', {method:'POST', headers:json, body:JSON.stringify({path})}),
+  rename:(src,dst) => API.call('/rename',{method:'POST', headers:json, body:JSON.stringify({src,dst})}),
+  meta:  (path)    => API.call(`/meta?path=${enc(path)}`),
+};
+const enc = encodeURIComponent;
+const json = {'Content-Type':'application/json'};
+
+// ─────────────────── UTILS ──────────────────────────────────────────────────
+function fmtSize(n) {
+  if (n < 0) return '';
+  if (n < 1024) return n + ' B';
+  if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+  if (n < 1024**3) return (n/1024/1024).toFixed(1) + ' MB';
+  return (n/1024**3).toFixed(2) + ' GB';
+}
+function fmtDate(ts) {
+  const d = new Date(ts * 1000);
+  const now = Date.now();
+  const diff = now - d.getTime();
+  if (diff < 86400000) return d.toLocaleTimeString('ja',{hour:'2-digit',minute:'2-digit'});
+  if (diff < 365*86400000) return (d.getMonth()+1)+'/'+d.getDate();
+  return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate();
+}
+function fileIcon(item) {
+  if (item.is_dir) return '📁';
+  const e = (item.ext||'').toLowerCase();
+  const map = {
+    '.png':' 🖼','.jpg':'🖼','.jpeg':'🖼','.gif':'🖼','.webp':'🖼','.svg':'🖼','.ico':'🖼','.bmp':'🖼',
+    '.mp4':'🎬','.mov':'🎬','.avi':'🎬','.mkv':'🎬','.webm':'🎬',
+    '.mp3':'🎵','.wav':'🎵','.flac':'🎵','.aac':'🎵','.m4a':'🎵','.ogg':'🎵',
+    '.pdf':'📕','.doc':'📘','.docx':'📘','.xls':'📗','.xlsx':'📗','.ppt':'📙','.pptx':'📙',
+    '.zip':'📦','.tar':'📦','.gz':'📦','.bz2':'📦','.7z':'📦','.rar':'📦','.dmg':'📦',
+    '.py':'🐍','.js':'💛','.ts':'💙','.jsx':'💛','.tsx':'💙','.html':'🌐','.css':'🎨',
+    '.json':'📋','.yaml':'📋','.yml':'📋','.toml':'📋','.xml':'📋',
+    '.sh':'⚙','.bash':'⚙','.zsh':'⚙','.bat':'⚙','.cmd':'⚙',
+    '.md':'📝','.txt':'📄','.log':'📄','.csv':'📊',
+    '.exe':'⚙','.app':'⚙','.deb':'⚙','.rpm':'⚙',
+    '.rs':'🦀','.go':'🐹','.rb':'💎','.java':'☕','.c':'📄','.cpp':'📄','.h':'📄',
+    '.sql':'🗄','.db':'🗄','.sqlite':'🗄',
+    '.git':'📁','.env':'🔒',
+  };
+  return map[e] || '📄';
+}
+
+// path join helper
+function pathJoin(a, b) {
+  const sep = a.includes('/') ? '/' : '\\';
+  return a.replace(/[/\\]+$/, '') + sep + b;
+}
+function pathBasename(p) {
+  return p.replace(/.*[/\\]/, '') || p;
+}
+// PDF.js を使って PDF を canvas にレンダリング
+async function renderPDF(url, size, container, capturedPath) {
+  const showFallback = (msg) => {
+    if (ST.lastPreviewPath !== capturedPath) return;
+    container.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+          height:100%;gap:12px;padding:20px;text-align:center">
+        <div style="font-size:40px">📕</div>
+        <div style="color:var(--text-dim);font-size:12px">${esc(msg)}</div>
+        <a href="${url}" target="_blank" style="color:var(--accent);font-size:12px;text-decoration:none">↗ 新しいタブで開く</a>
+        <a href="${url}" download style="color:var(--accent);font-size:12px;text-decoration:none">⬇ ダウンロード</a>
+      </div>`;
+  };
+  try {
+    // PDF.js を CDN から動的ロード（1 回のみ）
+    if (!window.pdfjsLib) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = res; s.onerror = () => rej(new Error('PDF.js の読み込みに失敗しました'));
+        document.head.appendChild(s);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    if (ST.lastPreviewPath !== capturedPath) return;
+
+    const pdf = await window.pdfjsLib.getDocument(url).promise;
+    if (ST.lastPreviewPath !== capturedPath) return;
+
+    // UI を構築
+    const outer = document.createElement('div');
+    outer.style.cssText = 'display:flex;flex-direction:column;height:100%';
+    const scroll = document.createElement('div');
+    scroll.className = 'pdf-scroll';
+    const bar = document.createElement('div');
+    bar.className = 'pdf-toolbar';
+    bar.innerHTML = `
+      <a href="${url}" target="_blank">↗ 新しいタブで開く</a>
+      <a href="${url}" download>⬇ ダウンロード</a>
+      <span style="color:var(--text-dim)">${pdf.numPages} ページ</span>
+      <span style="margin-left:auto;color:var(--text-dim)">${fmtSize(size)}</span>`;
+    outer.appendChild(scroll);
+    outer.appendChild(bar);
+    container.innerHTML = '';
+    container.appendChild(outer);
+
+    // 全ページをキャンバスにレンダリング
+    const availW = Math.max(100, scroll.clientWidth - 24);
+    for (let i = 1; i <= pdf.numPages; i++) {
+      if (ST.lastPreviewPath !== capturedPath) return;
+      const page = await pdf.getPage(i);
+      const baseVp = page.getViewport({ scale: 1 });
+      const scale  = availW / baseVp.width;
+      const vp     = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width  = vp.width;
+      canvas.height = vp.height;
+      scroll.appendChild(canvas);
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    }
+  } catch (err) {
+    showFallback(err.message || 'PDF を表示できません');
+  }
+}
+
+function setupLazyVideos(container) {
+  const videos = container.querySelectorAll('video[data-src]');
+  if (!videos.length) return;
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const v = e.target;
+      if (!v.src) v.src = v.dataset.src;
+      obs.unobserve(v);
+    });
+  }, { rootMargin: '120px' });
+  videos.forEach(v => obs.observe(v));
+}
+
+function videoThumbError(el) {
+  el.style.display = 'none';
+  const span = document.createElement('span');
+  span.className = 'thumb-icon-lg';
+  span.textContent = el.dataset.icon || '🎬';
+  el.parentNode.appendChild(span);
+}
+
+function parsePath(path) {
+  if (!path) return [];
+  const segments = [];
+  // Unix absolute path
+  if (path.startsWith('/')) {
+    segments.push({ label: '/', path: '/' });
+    const parts = path.split('/').filter(Boolean);
+    let built = '';
+    for (const part of parts) {
+      built += '/' + part;
+      segments.push({ label: part, path: built });
+    }
+  } else {
+    // Windows-style or relative fallback
+    const parts = path.replace(/\\/g, '/').split('/').filter(Boolean);
+    let built = '';
+    for (const part of parts) {
+      built = built ? built + '/' + part : part;
+      segments.push({ label: part, path: built });
+    }
+  }
+  return segments;
+}
+
+// ─────────────────── STATE ──────────────────────────────────────────────────
+let tabIdCtr = 0;
+function makeTab(path='') {
+  return {id: ++tabIdCtr, path, parent:'', items:[], selected:new Set(),
+    sortBy:'name', sortDir:1, history:[], histIdx:-1, loading:false};
+}
+
+const ST = {
+  active: 'left',
+  preview: false,
+  search: false,
+  searchPane: 'left',
+  panes: {
+    left:  {tabs:[makeTab()], cur:0, viewMode:'list'},
+    right: {tabs:[makeTab()], cur:0, viewMode:'list'},
+  },
+  ctxTarget: null,
+  modalCb: null,
+  showMeta: false,
+  lastPreviewPath: null,
+  thumbSize: 112,
+};
+
+function activeTab(side) {
+  const p = ST.panes[side||ST.active];
+  return p.tabs[p.cur];
+}
+function otherSide(side) { return side==='left'?'right':'left'; }
+
+// ─────────────────── LAYOUT PERSISTENCE ─────────────────────────────────────
+const Layout = {
+  KEY: 'fm-layout',
+
+  save() {
+    const sidebar  = document.getElementById('sidebar');
+    const favPanel = document.getElementById('fav-panel');
+    const paneLeft = document.getElementById('pane-left');
+    const preview  = document.getElementById('preview-panel');
+    try {
+      const savePaneTabs = (side) => {
+        const p = ST.panes[side];
+        return {
+          viewMode: p.viewMode || 'list',
+          cur: p.cur,
+          tabs: p.tabs.map(t => ({path: t.path, sortBy: t.sortBy, sortDir: t.sortDir})),
+        };
+      };
+      localStorage.setItem(this.KEY, JSON.stringify({
+        sidebarVisible: Tree.visible,
+        sidebarWidth  : sidebar  ? Math.round(sidebar.getBoundingClientRect().width)   : 220,
+        favHeight     : favPanel ? Math.round(favPanel.getBoundingClientRect().height) : null,
+        paneLeftWidth : paneLeft && paneLeft.style.width
+                          ? Math.round(parseFloat(paneLeft.style.width)) : null,
+        previewVisible: ST.preview,
+        previewWidth  : preview  ? Math.round(preview.getBoundingClientRect().width)   : 320,
+        showMeta      : ST.showMeta,
+        activeSide    : ST.active,
+        thumbSize     : ST.thumbSize,
+        panes         : {left: savePaneTabs('left'), right: savePaneTabs('right')},
+      }));
+    } catch {}
+  },
+
+  load() {
+    try {
+      const s = localStorage.getItem(this.KEY);
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  },
+};
+
+// ─────────────────── RENDER ─────────────────────────────────────────────────
+const FM = {
+
+  // ── Initialise ──────────────────────────────────────────────────────────
+  init() {
+    // ペイン状態を loadDir より先に復元
+    const lay = Layout.load();
+    ['left', 'right'].forEach(side => {
+      const saved = lay?.panes?.[side];
+      if (!saved) return;
+      const pane = ST.panes[side];
+      pane.viewMode = saved.viewMode || 'list';
+      if (Array.isArray(saved.tabs) && saved.tabs.length) {
+        pane.tabs = saved.tabs.map(t => {
+          const tab = makeTab(t.path || '');
+          tab.sortBy  = t.sortBy  || 'name';
+          tab.sortDir = t.sortDir || 1;
+          return tab;
+        });
+        pane.cur = Math.min(saved.cur || 0, pane.tabs.length - 1);
+      }
+    });
+
+    // 各ペインのカレントタブをロード
+    this.loadDir('left',  activeTab('left'));
+    this.loadDir('right', activeTab('right'));
+
+    this.setupDivider();
+    this.setupKeyboard();
+    this.setupListeners();
+    document.getElementById('search-input').addEventListener('keydown', e => {
+      if (e.key==='Enter') this.runSearch();
+      if (e.key==='Escape') this.toggleSearch();
+    });
+    // column header sort
+    ['left','right'].forEach(side => {
+      document.getElementById('header-'+side).querySelectorAll('span').forEach(s => {
+        s.addEventListener('click', e => {
+          e.stopPropagation();
+          const tab = activeTab(side);
+          const key = s.dataset.sort;
+          if (tab.sortBy===key) tab.sortDir *= -1;
+          else { tab.sortBy=key; tab.sortDir=1; }
+          this.renderList(side);
+          Layout.save();
+        });
+      });
+    });
+    this._restoreLayout();
+    window.addEventListener('beforeunload', () => Layout.save());
+  },
+
+  _restoreLayout() {
+    const lay = Layout.load();
+    if (!lay) return;
+
+    // サイドバー（ツリー＋お気に入り）
+    if (lay.sidebarVisible) {
+      Tree.toggle(); // hidden 解除 + Tree.init() 非同期呼び出し
+      // ツリー init 完了前でも style.width は維持される
+      if (lay.sidebarWidth) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.style.width = lay.sidebarWidth + 'px';
+      }
+    }
+    // お気に入りパネル高さ
+    if (lay.favHeight) {
+      const favPanel = document.getElementById('fav-panel');
+      if (favPanel) { favPanel.style.height = lay.favHeight + 'px'; favPanel.style.flex = 'none'; }
+    }
+    // 左ペイン幅（ディバイダー位置）
+    if (lay.paneLeftWidth) {
+      const paneLeft = document.getElementById('pane-left');
+      if (paneLeft) { paneLeft.style.flex = 'none'; paneLeft.style.width = lay.paneLeftWidth + 'px'; }
+    }
+    // プレビューパネル
+    if (lay.previewVisible) {
+      ST.preview = true;
+      document.getElementById('preview-panel').classList.remove('hidden');
+      document.getElementById('preview-resize').classList.remove('hidden');
+      document.getElementById('btn-preview').classList.add('active');
+      if (lay.previewWidth) {
+        document.getElementById('preview-panel').style.width = lay.previewWidth + 'px';
+      }
+    }
+    // メタ情報パネル（プレビューが開いているときのみ意味がある）
+    if (lay.showMeta && lay.previewVisible) {
+      ST.showMeta = true;
+      document.getElementById('preview-meta').classList.add('visible');
+      document.getElementById('btn-meta').classList.add('active');
+    }
+    // アクティブペイン
+    if (lay.activeSide === 'right') this.setActive('right');
+    // サムネイルサイズ
+    if (lay.thumbSize) this.applyThumbSize(lay.thumbSize, true);
+    // サムネイルボタン同期
+    this._syncViewBtn();
+    // 複数タブを復元（カレント以外のタブタイトルを表示）
+    ['left','right'].forEach(side => this.renderTabs(side));
+  },
+
+  // ── Directory Load ───────────────────────────────────────────────────────
+  async loadDir(side, tab, path, pushHistory=true) {
+    if (path === undefined) path = tab.path;
+    tab.loading = true;
+    this.renderList(side);
+    try {
+      const data = await API.listFiles(path);
+      if (pushHistory && tab.path && tab.path !== data.path) {
+        tab.history.splice(tab.histIdx+1);
+        tab.history.push(tab.path);
+        tab.histIdx = tab.history.length-1;
+      }
+      tab.path = data.path;
+      tab.parent = data.parent;
+      tab.items = data.items;
+      tab.selected.clear();
+    } catch(e) {
+      tab.items = [];
+      tab.loading = false;
+      this.setStatus('エラー: ' + e.message, true);
+      this.renderList(side);
+      return;
+    }
+    tab.loading = false;
+    this.renderList(side);
+    this.renderTabs(side);
+    this.updateAddr(side);
+    this.updateStatus(side);
+    Tree.syncHighlight(tab.path);
+    Favs.syncHighlight(tab.path);
+    Layout.save();
+  },
+
+  // ── Render Pane ──────────────────────────────────────────────────────────
+  renderList(side) {
+    const tab = activeTab(side);
+    const list = document.getElementById('list-'+side);
+    const hdr  = document.getElementById('header-'+side);
+    const viewMode = ST.panes[side].viewMode || 'list';
+
+    // update sort indicator on header; hide header in thumb mode
+    hdr.style.display = viewMode === 'thumb' ? 'none' : '';
+    hdr.querySelectorAll('span').forEach(s => {
+      s.classList.remove('sort-asc','sort-desc');
+      if (s.dataset.sort === tab.sortBy)
+        s.classList.add(tab.sortDir===1?'sort-asc':'sort-desc');
+    });
+
+    if (tab.loading) {
+      list.className = 'file-list';
+      list.innerHTML = '<div class="loading-row">読み込み中...</div>';
+      return;
+    }
+
+    const items = [...tab.items].sort((a,b) => {
+      let va, vb;
+      switch(tab.sortBy) {
+        case 'size':     va=a.size;     vb=b.size;     break;
+        case 'modified': va=a.modified; vb=b.modified; break;
+        case 'ext':      va=a.ext;      vb=b.ext;      break;
+        default:         va=a.name.toLowerCase(); vb=b.name.toLowerCase();
+      }
+      if (va < vb) return -tab.sortDir;
+      if (va > vb) return  tab.sortDir;
+      return 0;
+    });
+
+    if (!items.length) {
+      list.className = 'file-list';
+      list.innerHTML = '<div class="loading-row" style="color:var(--text-dim)">（空のフォルダ）</div>';
+      return;
+    }
+
+    if (viewMode === 'thumb') {
+      list.className = 'file-list thumb-grid';
+      const IMG_EXTS = new Set(['.png','.jpg','.jpeg','.gif','.webp','.svg','.bmp','.avif','.ico','.tiff','.tif','.heic','.heif','.exr','.tga','.hdr','.dng']);
+      const PSD_EXTS = new Set(['.psd','.psb']);
+      const VID_EXTS = new Set(['.mp4','.webm','.ogg','.ogv','.mov','.m4v','.3gp','.mkv','.avi','.wmv','.flv','.mpeg','.mpg','.m2v','.ts','.mts','.m2ts']);
+      const rows = items.map(item => {
+        const sel = tab.selected.has(item.path) ? ' selected' : '';
+        const dir = item.is_dir ? ' is-dir' : '';
+        const icon = fileIcon(item);
+        let inner;
+        if (IMG_EXTS.has(item.ext)) {
+          const url = '/raw?path=' + encodeURIComponent(item.path);
+          const iconQ = icon.replace(/'/g,"\\'");
+          inner = `<img src="${url}" loading="lazy" alt="${esc(item.name)}"
+            onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=\\'thumb-icon-lg\\'>${iconQ}</span>')">`;
+        } else if (PSD_EXTS.has(item.ext)) {
+          const url = '/psd-thumb?path=' + encodeURIComponent(item.path);
+          const iconQ = icon.replace(/'/g,"\\'");
+          inner = `<img src="${url}" loading="lazy" alt="${esc(item.name)}"
+            onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=\\'thumb-icon-lg\\'>${iconQ}</span>')">`;
+        } else if (VID_EXTS.has(item.ext)) {
+          const url = '/raw?path=' + encodeURIComponent(item.path);
+          inner = `<video data-src="${url}" preload="metadata" muted playsinline
+            data-icon="${esc(icon)}"
+            onloadeddata="if(!this._s){this._s=1;this.currentTime=0.001}"
+            onmouseenter="if(this.src&&this.readyState>=2)this.play()"
+            onmouseleave="this.pause();if(this.readyState>=2)this.currentTime=0.001"
+            onerror="videoThumbError(this)"></video>
+            <span class="vid-badge">▶ VIDEO</span>`;
+        } else {
+          inner = `<span class="thumb-icon-lg">${icon}</span>`;
+        }
+        return `<div class="thumb-item${sel}${dir}" data-path="${esc(item.path)}" data-dir="${item.is_dir}" data-side="${side}">
+          <div class="thumb-img-wrap">${inner}</div>
+          <div class="thumb-label" title="${esc(item.name)}">${esc(item.name)}</div>
+        </div>`;
+      }).join('');
+      list.innerHTML = rows;
+      setupLazyVideos(list);
+    } else {
+      list.className = 'file-list';
+      const rows = items.map(item => {
+        const sel = tab.selected.has(item.path) ? ' selected' : '';
+        const dir = item.is_dir ? ' is-dir' : '';
+        const icon = fileIcon(item);
+        const size = item.is_dir ? '<DIR>' : fmtSize(item.size);
+        const date = fmtDate(item.modified);
+        const ext  = item.is_dir ? '' : (item.ext||'').slice(1).toUpperCase();
+        return `<div class="file-row${sel}${dir}" data-path="${esc(item.path)}" data-dir="${item.is_dir}" data-side="${side}">
+          <div class="f-name"><span class="f-icon">${icon}</span><span class="f-name-text" title="${esc(item.name)}">${esc(item.name)}</span></div>
+          <div class="f-size">${size}</div>
+          <div class="f-date">${date}</div>
+          <div class="f-ext">${ext}</div>
+        </div>`;
+      }).join('');
+      list.innerHTML = rows;
+    }
+  },
+
+  renderTabs(side) {
+    const pane = ST.panes[side];
+    const container = document.getElementById('tabs-'+side);
+    container.innerHTML = '';
+    pane.tabs.forEach((tab, i) => {
+      const active = i===pane.cur ? ' active' : '';
+      const label = pathBasename(tab.path) || tab.path || '読み込み中...';
+      const div = document.createElement('div');
+      div.className = 'tab' + active;
+      div.dataset.idx = i;
+      div.dataset.side = side;
+      div.innerHTML = `<span class="tab-name" title="${esc(tab.path)}">${esc(label)}</span>
+        ${pane.tabs.length>1?`<span class="tab-close" data-close="${i}">✕</span>`:''}`;
+      div.addEventListener('click', e => {
+        if (e.target.dataset.close !== undefined) {
+          e.stopPropagation();
+          this.closeTab(side, +e.target.dataset.close);
+        } else {
+          e.stopPropagation();
+          this.switchTab(side, i);
+        }
+      });
+      container.appendChild(div);
+    });
+    const add = document.createElement('button');
+    add.className = 'tab-add';
+    add.textContent = '+';
+    add.title = '新規タブ';
+    add.onclick = e => { e.stopPropagation(); this.newTab(side); };
+    container.appendChild(add);
+  },
+
+  updateAddr(side) {
+    const tab = activeTab(side);
+    const inp = document.getElementById('addr-'+side);
+    if (document.activeElement !== inp) inp.value = tab.path;
+    document.getElementById('back-'+side).disabled = tab.history.length===0;
+    document.getElementById('fwd-'+side).disabled  = tab.histIdx >= tab.history.length-1;
+    this.renderCrumbs(side);
+  },
+
+  renderCrumbs(side) {
+    const crumbs = document.getElementById('crumbs-'+side);
+    if (!crumbs) return;
+    const tab = activeTab(side);
+    const segs = parsePath(tab.path || '');
+    crumbs.innerHTML = '';
+    segs.forEach((seg, i) => {
+      if (i > 0) {
+        const sep = document.createElement('span');
+        sep.className = 'crumb-sep';
+        sep.textContent = '›';
+        crumbs.appendChild(sep);
+      }
+      const el = document.createElement('span');
+      el.className = 'crumb' + (i === segs.length - 1 ? ' crumb-active' : '');
+      el.textContent = seg.label;
+      el.dataset.path = seg.path;
+      crumbs.appendChild(el);
+    });
+    // Scroll to show the rightmost (deepest) segment
+    requestAnimationFrame(() => { crumbs.scrollLeft = crumbs.scrollWidth; });
+  },
+
+  handleCrumbClick(e, side) {
+    const el = e.target.closest('.crumb');
+    if (!el) {
+      // Click on empty area → edit mode
+      this.crumbStartEdit(side);
+      return;
+    }
+    const targetPath = el.dataset.path;
+    const tab = activeTab(side);
+    if (targetPath === tab.path) {
+      // Clicking the active (deepest) segment → edit mode
+      this.crumbStartEdit(side);
+    } else {
+      this.navigateTo(side, targetPath);
+    }
+  },
+
+  crumbStartEdit(side) {
+    const tab = activeTab(side);
+    const inp = document.getElementById('addr-'+side);
+    const crumbs = document.getElementById('crumbs-'+side);
+    inp.value = tab.path;
+    crumbs.style.display = 'none';
+    inp.classList.add('editing');
+    inp.focus();
+    inp.select();
+  },
+
+  crumbEndEdit(side) {
+    const inp = document.getElementById('addr-'+side);
+    const crumbs = document.getElementById('crumbs-'+side);
+    inp.classList.remove('editing');
+    crumbs.style.display = '';
+  },
+
+  handleAddrKey(e, side) {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      const inp = document.getElementById('addr-'+side);
+      this.navigateTo(side, inp.value);
+      inp.blur();
+    } else if (e.key === 'Escape') {
+      document.getElementById('addr-'+side).blur();
+    }
+  },
+
+  copyPath(side) {
+    const path = activeTab(side).path || '';
+    const btn = document.querySelector('#pane-'+side+' .addr-copy');
+    const doFeedback = () => {
+      const orig = btn.textContent;
+      btn.textContent = '✓';
+      btn.style.color = 'var(--accent)';
+      setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+    };
+    const execFallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = path;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try { if (document.execCommand('copy')) doFeedback(); } catch(_) {}
+      document.body.removeChild(ta);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(path).then(doFeedback).catch(execFallback);
+    } else {
+      execFallback();
+    }
+  },
+
+  updateStatus(side) {
+    const tab = activeTab(side||ST.active);
+    const sel = tab.selected.size;
+    const total = tab.items.length;
+    const selSize = tab.items
+      .filter(i => tab.selected.has(i.path) && !i.is_dir)
+      .reduce((s,i) => s+i.size, 0);
+    let txt = `${total} アイテム`;
+    if (sel) txt += ` | ${sel} 件選択`;
+    if (selSize > 0) txt += ` (${fmtSize(selSize)})`;
+    document.getElementById('status-left').textContent = txt;
+    document.getElementById('status-right').textContent = activeTab(ST.active).path;
+  },
+
+  setStatus(msg, err=false) {
+    const el = document.getElementById('status-left');
+    el.textContent = msg;
+    el.style.color = err ? '#f87171' : '';
+    setTimeout(() => { el.style.color=''; }, 3000);
+  },
+
+  // ── Active pane ──────────────────────────────────────────────────────────
+  setActive(side) {
+    const changed = ST.active !== side;
+    ST.active = side;
+    document.getElementById('pane-left').classList.toggle('active',  side==='left');
+    document.getElementById('pane-right').classList.toggle('active', side==='right');
+    this.updateStatus(side);
+    this._syncViewBtn();
+    if (changed) Layout.save();
+  },
+
+  toggleView(side) {
+    if (!side) side = ST.active;
+    const pane = ST.panes[side];
+    pane.viewMode = pane.viewMode === 'thumb' ? 'list' : 'thumb';
+    this.renderList(side);
+    this._syncViewBtn();
+    Layout.save();
+  },
+
+  _syncViewBtn() {
+    const btn = document.getElementById('btn-view');
+    if (!btn) return;
+    const isThumb = ST.panes[ST.active].viewMode === 'thumb';
+    btn.classList.toggle('active', isThumb);
+    btn.querySelector('.icon').textContent = isThumb ? '☰' : '⊞';
+    btn.childNodes[2].textContent = isThumb ? ' リスト' : ' サムネイル';
+    btn.title = isThumb ? 'リスト表示 (V)' : 'サムネイル表示 (V)';
+    const ctrl = document.getElementById('thumb-size-ctrl');
+    if (ctrl) ctrl.classList.toggle('hidden', !isThumb);
+  },
+
+  applyThumbSize(size, skipSave=false) {
+    ST.thumbSize = size;
+    document.documentElement.style.setProperty('--thumb-col', size + 'px');
+    const slider = document.getElementById('thumb-slider');
+    if (slider) slider.value = size;
+    if (!skipSave) Layout.save();
+  },
+
+  // ── Navigation ───────────────────────────────────────────────────────────
+  navigateTo(side, path) {
+    if (!side) side = ST.active;
+    this.loadDir(side, activeTab(side), path);
+    this.setActive(side);
+  },
+
+  navBack(side) {
+    if (!side) side = ST.active;
+    const tab = activeTab(side);
+    if (!tab.history.length) return;
+    const prev = tab.history[tab.histIdx] || tab.history[tab.history.length-1];
+    if (prev) this.loadDir(side, tab, prev, false);
+  },
+
+  navForward(side) {
+    if (!side) side = ST.active;
+    const tab = activeTab(side);
+    const next = tab.history[tab.histIdx+1];
+    if (next) { tab.histIdx++; this.loadDir(side, tab, next, false); }
+  },
+
+  navUp(side) {
+    if (!side) side = ST.active;
+    const tab = activeTab(side);
+    if (tab.parent && tab.parent !== tab.path) this.loadDir(side, tab, tab.parent);
+  },
+
+  refresh(side) {
+    if (!side) side = ST.active;
+    const tab = activeTab(side);
+    this.loadDir(side, tab, tab.path, false);
+  },
+
+  openHome() {
+    this.loadDir(ST.active, activeTab(ST.active), '~');
+  },
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────
+  newTab(side) {
+    const src = activeTab(side);
+    const tab = makeTab(src.path);
+    ST.panes[side].tabs.push(tab);
+    ST.panes[side].cur = ST.panes[side].tabs.length-1;
+    this.loadDir(side, tab);
+    this.renderTabs(side);
+    Layout.save();
+  },
+
+  closeTab(side, idx) {
+    const pane = ST.panes[side];
+    if (pane.tabs.length===1) return;
+    pane.tabs.splice(idx, 1);
+    if (pane.cur >= pane.tabs.length) pane.cur = pane.tabs.length-1;
+    else if (pane.cur > idx) pane.cur--;
+    this.renderTabs(side);
+    this.renderList(side);
+    this.updateAddr(side);
+    this.updateStatus(side);
+    Layout.save();
+  },
+
+  switchTab(side, idx) {
+    ST.panes[side].cur = idx;
+    this.renderTabs(side);
+    this.renderList(side);
+    this.updateAddr(side);
+    this.updateStatus(side);
+    this.setActive(side);
+    Layout.save();
+  },
+
+  // ── Selection ────────────────────────────────────────────────────────────
+  handleRowClick(e, side) {
+    const row = e.target.closest('.file-row,.thumb-item');
+    if (!row) return;
+    this.setActive(side);
+    const tab = activeTab(side);
+    const path = row.dataset.path;
+
+    if (e.detail===2) { // double click
+      if (row.dataset.dir==='true') this.loadDir(side, tab, path);
+      else this.openFile(path);
+      return;
+    }
+
+    const isDir = row.dataset.dir==='true';
+    if (e.ctrlKey || e.metaKey) {
+      if (tab.selected.has(path)) tab.selected.delete(path);
+      else tab.selected.add(path);
+    } else if (e.shiftKey && tab.selected.size) {
+      // range select
+      const allRows = [...document.getElementById('list-'+side).querySelectorAll('.file-row,.thumb-item')];
+      const paths = allRows.map(r=>r.dataset.path);
+      const lastSel = [...tab.selected].pop();
+      const a = paths.indexOf(lastSel);
+      const b = paths.indexOf(path);
+      const [lo,hi] = [Math.min(a,b), Math.max(a,b)];
+      paths.slice(lo, hi+1).forEach(p => tab.selected.add(p));
+    } else {
+      tab.selected.clear();
+      tab.selected.add(path);
+    }
+
+    this._syncSelection(side);
+    this.updateStatus(side);
+
+    if (ST.preview && tab.selected.size===1 && !isDir) {
+      this.loadPreview(path);
+    }
+  },
+
+  _syncSelection(side) {
+    const tab = activeTab(side);
+    const list = document.getElementById('list-'+side);
+    list.querySelectorAll('.file-row,.thumb-item').forEach(el => {
+      el.classList.toggle('selected', tab.selected.has(el.dataset.path));
+    });
+  },
+
+  openFile(path) {
+    this.loadPreview(path);
+  },
+
+  // ── Preview ──────────────────────────────────────────────────────────────
+  togglePreview() {
+    ST.preview = !ST.preview;
+    document.getElementById('preview-panel').classList.toggle('hidden', !ST.preview);
+    document.getElementById('preview-resize').classList.toggle('hidden', !ST.preview);
+    document.getElementById('btn-preview').classList.toggle('active', ST.preview);
+    Layout.save();
+    if (!ST.preview) return;
+    const tab = activeTab(ST.active);
+    const sel = [...tab.selected];
+    if (sel.length===1) {
+      const item = tab.items.find(i=>i.path===sel[0]);
+      if (item && !item.is_dir) this.loadPreview(sel[0]);
+    }
+  },
+
+  async loadPreview(path) {
+    if (!ST.preview) return;
+    ST.lastPreviewPath = path;
+    const pc = document.getElementById('preview-content');
+    const pt = document.getElementById('preview-title');
+    pt.textContent = pathBasename(path);
+    pc.className = '';
+    pc.innerHTML = '<div class="loading-row">読み込み中...</div>';
+    try {
+      const d = await API.preview(path);
+      pc.className = '';
+
+      if (d.type === 'image') {
+        pc.className = 'img-mode';
+        pc.innerHTML = `<img src="${d.url}" alt="preview">`;
+
+      } else if (d.type === 'video') {
+        pc.innerHTML = `<div class="preview-video">
+          <video controls preload="metadata" style="max-width:100%;max-height:280px;border-radius:4px;background:#000">
+            <source src="${d.url}" type="${esc(d.mime)}">
+            <p style="color:var(--text-dim)">このブラウザでは再生できません (${esc(d.mime)})</p>
+          </video>
+        </div>`;
+
+      } else if (d.type === 'audio') {
+        pc.innerHTML = `<div class="preview-audio">
+          <span class="big-icon">🎵</span>
+          <div style="margin-bottom:8px;font-size:12px">${esc(pathBasename(path))}</div>
+          <audio controls style="width:100%">
+            <source src="${d.url}" type="${esc(d.mime)}">
+          </audio>
+        </div>`;
+
+      } else if (d.type === 'pdf') {
+        pc.className = 'pdf-mode';
+        pc.innerHTML = `
+          <div style="height:100%;display:flex;align-items:center;justify-content:center;
+              flex-direction:column;gap:8px;color:var(--text-dim)">
+            <div style="font-size:28px">📕</div>
+            <div style="font-size:12px">PDF 読み込み中...</div>
+          </div>`;
+        renderPDF(d.url, d.size, pc, path);
+
+      } else if (d.type === 'text') {
+        const ext = d.ext || '';
+        const trunc = d.truncated
+          ? '<div style="color:#f87171;font-size:10px;padding:2px 4px;background:rgba(248,113,113,.1)">先頭100KBのみ表示</div>' : '';
+        pc.innerHTML = trunc + `<pre data-ext="${esc(ext)}">${esc(d.content)}</pre>`;
+
+      } else if (d.type === 'csv') {
+        if (!d.rows || !d.rows.length) {
+          pc.innerHTML = '<div class="preview-empty">データなし</div>';
+        } else {
+          const header = d.rows[0];
+          const body   = d.rows.slice(1);
+          const th = header.map((c,i) => `<th>${esc(c)||'列'+(i+1)}</th>`).join('');
+          const trs = body.map((row, ri) => {
+            const tds = header.map((_,i) => `<td title="${esc(row[i]||'')}">${esc(row[i]||'')}</td>`).join('');
+            return `<tr><td class="csv-row-num">${ri+2}</td>${tds}</tr>`;
+          }).join('');
+          const trunc = d.truncated ? `<div style="color:#f87171;font-size:10px;padding:2px 6px">先頭500行のみ表示</div>` : '';
+          pc.innerHTML = `${trunc}<div class="preview-csv"><table>
+            <thead><tr><th style="min-width:30px">#</th>${th}</tr></thead>
+            <tbody>${trs}</tbody>
+          </table></div>`;
+        }
+
+      } else if (d.type === 'archive') {
+        const rows = (d.entries || []).map(e =>
+          `<div class="preview-archive-row">
+            <div class="arc-name${e.is_dir?' is-dir':''}">${e.is_dir?'📁 ':'📄 '}${esc(e.name)}</div>
+            <div class="arc-size">${e.is_dir ? '' : fmtSize(e.size)}</div>
+          </div>`
+        ).join('');
+        const trunc = d.entries && d.entries.length >= 1000
+          ? '<div style="color:#f87171;font-size:10px;padding:2px 8px">先頭1000件のみ表示</div>' : '';
+        pc.innerHTML = `<div class="preview-archive">
+          <div class="preview-archive-hdr">
+            <div>${d.format} — ${(d.entries||[]).length} アイテム</div>
+            <div style="text-align:right">サイズ</div>
+          </div>
+          ${rows}${trunc}
+        </div>`;
+
+      } else {
+        pc.innerHTML = `<div class="preview-binary">
+          <span class="big-icon">${fileIcon({ext:path.slice(path.lastIndexOf('.')),is_dir:false})}</span>
+          <div style="margin-top:8px;font-size:12px">${esc(pathBasename(path))}</div>
+          <div style="margin-top:6px;color:var(--text-dim);font-size:11px">${esc(d.mime||'')}</div>
+          <div style="margin-top:2px;color:var(--text-dim);font-size:11px">${fmtSize(d.size)}</div>
+          <div style="margin-top:12px;color:var(--text-dim);font-size:11px">プレビュー非対応</div>
+        </div>`;
+      }
+    } catch(e) {
+      pc.innerHTML = `<div class="error-row">${esc(e.message)}</div>`;
+    }
+    this.loadMeta(path);
+  },
+
+  toggleMeta() {
+    ST.showMeta = !ST.showMeta;
+    document.getElementById('preview-meta').classList.toggle('visible', ST.showMeta);
+    document.getElementById('btn-meta').classList.toggle('active', ST.showMeta);
+    Layout.save();
+    if (ST.showMeta && ST.lastPreviewPath) this.loadMeta(ST.lastPreviewPath);
+  },
+
+  async loadMeta(path) {
+    const panel = document.getElementById('preview-meta');
+    if (!ST.showMeta || !panel.classList.contains('visible')) return;
+    panel.innerHTML = '<div class="meta-rows"><div class="meta-row"><span class="meta-label">...</span><span class="meta-value">読み込み中</span></div></div>';
+    try {
+      const d = await API.meta(path);
+      const rows = [
+        ['名前', d.name],
+        ['パス', d.path],
+        ['種別', d.mime],
+        ['サイズ', d.is_dir ? '—' : fmtSize(d.size) + (d.size >= 0 ? `  (${d.size.toLocaleString()} B)` : '')],
+        ['更新日時', new Date(d.modified * 1000).toLocaleString('ja')],
+        ['作成日時', new Date(d.created  * 1000).toLocaleString('ja')],
+        ['アクセス', new Date(d.accessed * 1000).toLocaleString('ja')],
+        ['権限', d.permissions],
+      ];
+      if (d.lines !== undefined) rows.splice(3, 0, ['行数', d.lines.toLocaleString() + ' 行']);
+      panel.innerHTML = '<div class="meta-rows">' +
+        rows.map(([label, val]) =>
+          `<div class="meta-row"><span class="meta-label">${esc(label)}</span><span class="meta-value">${esc(String(val??''))}</span></div>`
+        ).join('') + '</div>';
+    } catch(e) {
+      panel.innerHTML = `<div class="meta-row"><span class="meta-label">エラー</span><span class="meta-value" style="color:#f87171">${esc(e.message)}</span></div>`;
+    }
+  },
+
+  // ── Search ───────────────────────────────────────────────────────────────
+  toggleSearch() {
+    ST.search = !ST.search;
+    const bar = document.getElementById('search-bar');
+    bar.classList.toggle('visible', ST.search);
+    document.getElementById('btn-search').classList.toggle('active', ST.search);
+    if (ST.search) {
+      document.getElementById('search-input').focus();
+    } else {
+      // restore normal view
+      document.getElementById('search-results-info').textContent = '';
+      document.getElementById('search-input').value = '';
+      this.renderList('left');
+      this.renderList('right');
+    }
+  },
+
+  async runSearch() {
+    const q = document.getElementById('search-input').value.trim();
+    if (!q) return;
+    const side = ST.active;
+    ST.searchPane = side;
+    const tab = activeTab(side);
+    const info = document.getElementById('search-results-info');
+    info.textContent = '検索中...';
+    try {
+      const data = await API.search(q, tab.path);
+      tab.items = data.results;
+      tab.selected.clear();
+      this.renderList(side);
+      info.textContent = `${data.total} 件見つかりました`;
+    } catch(e) {
+      info.textContent = 'エラー: ' + e.message;
+    }
+  },
+
+  // ── File Operations ──────────────────────────────────────────────────────
+  async copySelected() {
+    const src_side = ST.active;
+    const dst_side = otherSide(src_side);
+    const tab = activeTab(src_side);
+    const dst = activeTab(dst_side).path;
+    if (!tab.selected.size) { this.setStatus('コピーするファイルを選択してください'); return; }
+    let ok=0, fail=0;
+    for (const p of tab.selected) {
+      try { await API.copy(p, dst); ok++; }
+      catch(e) { fail++; console.error(e); }
+    }
+    this.setStatus(`コピー完了: ${ok} 件${fail?` (失敗: ${fail})`:''}`);
+    this.refresh(dst_side);
+  },
+
+  async moveSelected() {
+    const src_side = ST.active;
+    const dst_side = otherSide(src_side);
+    const tab = activeTab(src_side);
+    const dst = activeTab(dst_side).path;
+    if (!tab.selected.size) { this.setStatus('移動するファイルを選択してください'); return; }
+    if (!confirm(`${tab.selected.size} 件を移動しますか？`)) return;
+    let ok=0, fail=0;
+    for (const p of tab.selected) {
+      try { await API.move(p, dst); ok++; }
+      catch(e) { fail++; console.error(e); }
+    }
+    this.setStatus(`移動完了: ${ok} 件${fail?` (失敗: ${fail})`:''}`);
+    this.refresh(src_side);
+    this.refresh(dst_side);
+  },
+
+  async deleteSelected() {
+    const tab = activeTab(ST.active);
+    if (!tab.selected.size) { this.setStatus('削除するファイルを選択してください'); return; }
+    if (!confirm(`${tab.selected.size} 件を削除しますか？\n（元に戻せません）`)) return;
+    let ok=0, fail=0;
+    for (const p of tab.selected) {
+      try { await API.del(p); ok++; }
+      catch(e) { fail++; console.error(e); }
+    }
+    this.setStatus(`削除完了: ${ok} 件${fail?` (失敗: ${fail})`:''}`);
+    this.refresh(ST.active);
+  },
+
+  promptNewFolder() {
+    this.openModal('新規フォルダ', '新しいフォルダ', async (name) => {
+      if (!name) return;
+      const tab = activeTab(ST.active);
+      const newPath = pathJoin(tab.path, name);
+      try {
+        await API.mkdir(newPath);
+        this.setStatus(`フォルダ作成: ${name}`);
+        this.refresh(ST.active);
+      } catch(e) { this.setStatus('エラー: '+e.message, true); }
+    });
+  },
+
+  promptRename() {
+    const tab = activeTab(ST.active);
+    if (!tab.selected.size) return;
+    const path = [...tab.selected][0];
+    const name = pathBasename(path);
+    this.openModal('名前変更', name, async (newName) => {
+      if (!newName || newName===name) return;
+      const dst = pathJoin(tab.path, newName);
+      try {
+        await API.rename(path, dst);
+        this.setStatus(`名前変更: ${name} → ${newName}`);
+        this.refresh(ST.active);
+      } catch(e) { this.setStatus('エラー: '+e.message, true); }
+    });
+  },
+
+  // ── Context Menu ─────────────────────────────────────────────────────────
+  showCtx(e, side) {
+    e.preventDefault();
+    this.setActive(side);
+    const row = e.target.closest('.file-row,.thumb-item');
+    if (row) {
+      const tab = activeTab(side);
+      if (!tab.selected.has(row.dataset.path)) {
+        tab.selected.clear();
+        tab.selected.add(row.dataset.path);
+        this.renderList(side);
+      }
+    }
+    const menu = document.getElementById('ctx-menu');
+    menu.style.left = Math.min(e.clientX, window.innerWidth-170) + 'px';
+    menu.style.top  = Math.min(e.clientY, window.innerHeight-200) + 'px';
+    menu.classList.add('visible');
+  },
+
+  hideCtx() { document.getElementById('ctx-menu').classList.remove('visible'); },
+
+  ctxOpen() {
+    this.hideCtx();
+    const tab = activeTab(ST.active);
+    if (!tab.selected.size) return;
+    const path = [...tab.selected][0];
+    const item = tab.items.find(i=>i.path===path);
+    if (item?.is_dir) this.loadDir(ST.active, tab, path);
+    else this.openFile(path);
+  },
+
+  ctxOpenOther() {
+    this.hideCtx();
+    const tab = activeTab(ST.active);
+    if (!tab.selected.size) return;
+    const path = [...tab.selected][0];
+    const item = tab.items.find(i=>i.path===path);
+    if (item?.is_dir) this.loadDir(otherSide(ST.active), activeTab(otherSide(ST.active)), path);
+  },
+
+  // ── Modal ─────────────────────────────────────────────────────────────────
+  openModal(title, defaultVal, cb) {
+    document.getElementById('modal-title').textContent = title;
+    const inp = document.getElementById('modal-input');
+    inp.value = defaultVal || '';
+    ST.modalCb = cb;
+    document.getElementById('modal-overlay').classList.add('visible');
+    setTimeout(() => { inp.focus(); inp.select(); }, 50);
+  },
+
+  closeModal() {
+    document.getElementById('modal-overlay').classList.remove('visible');
+    ST.modalCb = null;
+  },
+
+  modalConfirm() {
+    const val = document.getElementById('modal-input').value.trim();
+    const cb = ST.modalCb;
+    this.closeModal();
+    if (cb) cb(val);
+  },
+
+  // ── Keyboard ─────────────────────────────────────────────────────────────
+  setupKeyboard() {
+    document.addEventListener('keydown', e => {
+      const tag = document.activeElement?.tagName;
+      const inInput = tag==='INPUT' || tag==='TEXTAREA';
+      const modal = document.getElementById('modal-overlay').classList.contains('visible');
+
+      if (modal) {
+        if (e.key==='Enter') { e.preventDefault(); this.modalConfirm(); }
+        if (e.key==='Escape') this.closeModal();
+        return;
+      }
+
+      if (inInput) {
+        if (e.key==='Escape') document.activeElement.blur();
+        return;
+      }
+
+      switch(e.key) {
+        case 'Tab':
+          e.preventDefault();
+          this.setActive(otherSide(ST.active));
+          break;
+        case 'F2':
+          e.preventDefault();
+          if (e.shiftKey) Renamer.open();
+          else this.promptRename();
+          break;
+        case 'F3': e.preventDefault(); this.togglePreview(); break;
+        case 'F5':
+          e.preventDefault();
+          if (e.shiftKey) this.refresh();
+          else this.copySelected();
+          break;
+        case 'F6': e.preventDefault(); this.moveSelected(); break;
+        case 'F8': case 'Delete': e.preventDefault(); this.deleteSelected(); break;
+        case 'Backspace': e.preventDefault(); this.navUp(); break;
+        case 'Enter': {
+          const tab = activeTab(ST.active);
+          if (tab.selected.size===1) {
+            const p = [...tab.selected][0];
+            const item = tab.items.find(i=>i.path===p);
+            if (item?.is_dir) this.loadDir(ST.active, tab, p);
+            else this.openFile(p);
+          }
+          break;
+        }
+        case 'a': case 'A':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            const tab = activeTab(ST.active);
+            tab.items.forEach(i => tab.selected.add(i.path));
+            this.renderList(ST.active);
+            this.updateStatus(ST.active);
+          }
+          break;
+        case 'f': case 'F':
+          if (e.ctrlKey || e.metaKey) { e.preventDefault(); this.toggleSearch(); }
+          break;
+        case 't': case 'T':
+          if (e.ctrlKey || e.metaKey) { e.preventDefault(); Tree.toggle(); }
+          break;
+        case 'i': case 'I':
+          if (ST.preview) { e.preventDefault(); FM.toggleMeta(); }
+          break;
+        case 'v': case 'V':
+          e.preventDefault();
+          this.toggleView();
+          break;
+        case 'Escape':
+          if (ST.search) { this.toggleSearch(); break; }
+          { const tab = activeTab(ST.active);
+            tab.selected.clear();
+            this.renderList(ST.active);
+            this.updateStatus(ST.active); }
+          break;
+        case 'ArrowLeft':
+          if (e.altKey) { e.preventDefault(); this.navBack(); }
+          break;
+        case 'ArrowRight':
+          if (e.altKey) { e.preventDefault(); this.navForward(); }
+          break;
+        case 'ArrowUp': case 'ArrowDown':
+        case 'ArrowLeft': case 'ArrowRight': {
+          e.preventDefault();
+          const tab = activeTab(ST.active);
+          const list = document.getElementById('list-'+ST.active);
+          const rows = [...list.querySelectorAll('.file-row,.thumb-item')];
+          const paths = rows.map(r=>r.dataset.path);
+          if (!paths.length) break;
+          const lastSel = [...tab.selected].pop();
+          const idx = paths.indexOf(lastSel);
+          let next = idx;
+          if (e.key==='ArrowUp' || e.key==='ArrowLeft') next = Math.max(0, idx-1);
+          else next = Math.min(paths.length-1, idx+1);
+          if (idx===-1) next=0;
+          tab.selected.clear();
+          tab.selected.add(paths[next]);
+          this.renderList(ST.active);
+          this.updateStatus(ST.active);
+          rows[next]?.scrollIntoView({block:'nearest'});
+          if (ST.preview) {
+            const item = tab.items.find(i=>i.path===paths[next]);
+            if (item && !item.is_dir) this.loadPreview(paths[next]);
+          }
+          break;
+        }
+      }
+    });
+  },
+
+  // ── Event Listeners ──────────────────────────────────────────────────────
+  setupListeners() {
+    ['left','right'].forEach(side => {
+      const list = document.getElementById('list-'+side);
+      list.addEventListener('click',       e => this.handleRowClick(e, side));
+      list.addEventListener('dblclick',    e => this.handleRowClick(e, side));
+      list.addEventListener('contextmenu', e => this.showCtx(e, side));
+    });
+
+    document.addEventListener('click', () => this.hideCtx());
+    document.addEventListener('contextmenu', e => {
+      if (!e.target.closest('.file-list')) this.hideCtx();
+    });
+
+    // drag & drop between panes
+    this.setupDragDrop();
+  },
+
+  // ── Drag & Drop ──────────────────────────────────────────────────────────
+  setupDragDrop() {
+    ['left','right'].forEach(side => {
+      const list = document.getElementById('list-'+side);
+
+      list.addEventListener('dragstart', e => {
+        const row = e.target.closest('.file-row,.thumb-item');
+        if (!row) return;
+        const tab = activeTab(side);
+        if (!tab.selected.has(row.dataset.path)) {
+          tab.selected.clear();
+          tab.selected.add(row.dataset.path);
+          this.renderList(side);
+        }
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+          side, paths: [...tab.selected]
+        }));
+        e.dataTransfer.effectAllowed = 'copyMove';
+      });
+
+      list.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = e.ctrlKey ? 'copy' : 'move';
+      });
+
+      list.addEventListener('drop', async e => {
+        e.preventDefault();
+        let payload;
+        try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
+        if (payload.side === side) return; // same pane, no-op
+        const dstTab = activeTab(side);
+        const op = e.ctrlKey ? 'copy' : 'move';
+        let ok=0, fail=0;
+        for (const p of payload.paths) {
+          try {
+            if (op==='copy') await API.copy(p, dstTab.path);
+            else await API.move(p, dstTab.path);
+            ok++;
+          } catch(err) { fail++; }
+        }
+        this.setStatus(`${op==='copy'?'コピー':'移動'}完了: ${ok}件${fail?` (失敗:${fail})`:''}`);
+        this.refresh(side);
+        if (op==='move') this.refresh(payload.side);
+      });
+
+      // make rows draggable
+      list.addEventListener('mousedown', e => {
+        const row = e.target.closest('.file-row,.thumb-item');
+        if (row) row.draggable = true;
+      });
+    });
+  },
+
+  // ── Resizable Divider ────────────────────────────────────────────────────
+  setupDivider() {
+    // 左右ペイン分割
+    this._makeHResize(
+      document.getElementById('divider'),
+      document.getElementById('pane-left'),
+      120, () => {
+        const mainW = document.getElementById('main').getBoundingClientRect().width;
+        const sideW  = ST.treeVisible ? document.getElementById('sidebar').getBoundingClientRect().width + 4 : 0;
+        const prevW  = ST.preview     ? document.getElementById('preview-panel').getBoundingClientRect().width + 4 : 0;
+        return mainW - sideW - 5 - prevW - 120;
+      }
+    );
+    // プレビューパネル幅
+    this._makeHResizeInv(
+      document.getElementById('preview-resize'),
+      document.getElementById('preview-panel'),
+      180, 640
+    );
+  },
+
+  _makeHResize(handle, target, min, maxFn) {
+    let drag=false, sx=0, sw=0;
+    handle.addEventListener('mousedown', e => {
+      drag=true; sx=e.clientX; sw=target.getBoundingClientRect().width;
+      handle.classList.add('dragging'); document.body.style.cursor='col-resize';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const max = typeof maxFn==='function' ? maxFn() : maxFn;
+      const w = Math.max(min, Math.min(max, sw + e.clientX - sx));
+      target.style.flex='none'; target.style.width=w+'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (!drag) return;
+      drag=false; handle.classList.remove('dragging'); document.body.style.cursor='';
+      Layout.save();
+    });
+  },
+
+  _makeHResizeInv(handle, target, min, max) {
+    // ドラッグ方向が逆（左ドラッグ = 幅増）
+    let drag=false, sx=0, sw=0;
+    handle.addEventListener('mousedown', e => {
+      drag=true; sx=e.clientX; sw=target.getBoundingClientRect().width;
+      handle.classList.add('dragging'); document.body.style.cursor='col-resize';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const w = Math.max(min, Math.min(max, sw - (e.clientX - sx)));
+      target.style.width=w+'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (!drag) return;
+      drag=false; handle.classList.remove('dragging'); document.body.style.cursor='';
+      Layout.save();
+    });
+  },
+};
+
+// ─────────────────── FAVORITES ──────────────────────────────────────────────
+const Favs = {
+  KEY: 'fm-favorites',
+  items: [],
+  _ready: false,
+
+  _defaults() {
+    return [
+      { name: 'ホーム',       path: '~',            icon: '🏠' },
+      { name: 'デスクトップ', path: '~/Desktop',     icon: '🖥' },
+      { name: 'ドキュメント', path: '~/Documents',   icon: '📄' },
+      { name: 'ダウンロード', path: '~/Downloads',   icon: '📥' },
+      { name: 'ピクチャ',     path: '~/Pictures',    icon: '🖼' },
+      { name: 'ミュージック', path: '~/Music',       icon: '🎵' },
+      { name: 'ムービー',     path: '~/Movies',      icon: '🎬' },
+    ];
+  },
+
+  load() {
+    try {
+      const saved = localStorage.getItem(this.KEY);
+      this.items = saved ? JSON.parse(saved) : this._defaults();
+    } catch { this.items = this._defaults(); }
+  },
+
+  save() {
+    try { localStorage.setItem(this.KEY, JSON.stringify(this.items)); } catch {}
+  },
+
+  addCurrent() {
+    const tab = activeTab(ST.active);
+    const path = tab?.path;
+    if (!path) return;
+    if (this.items.find(i => i.path === path)) {
+      FM.setStatus('このフォルダは既にお気に入りに登録されています');
+      return;
+    }
+    const name = pathBasename(path) || path;
+    this.items.push({ name, path, icon: '📁' });
+    this.save();
+    this.render();
+    FM.setStatus(`お気に入りに追加: ${name}`);
+  },
+
+  remove(path, e) {
+    if (e) e.stopPropagation();
+    this.items = this.items.filter(i => i.path !== path);
+    this.save();
+    this.render();
+  },
+
+  navigate(path) {
+    FM.navigateTo(ST.active, path);
+    this.syncHighlight(path);
+    Tree.syncHighlight(path);
+  },
+
+  syncHighlight(path) {
+    document.querySelectorAll('.fav-item').forEach(el =>
+      el.classList.toggle('fav-active', el.dataset.path === path));
+  },
+
+  render() {
+    const list = document.getElementById('fav-list');
+    if (!list) return;
+    const cur = activeTab(ST.active)?.path || '';
+    if (!this.items.length) {
+      list.innerHTML = '<div style="padding:8px 10px;font-size:11px;color:var(--text-dim)">フォルダをここにドロップ</div>';
+      return;
+    }
+    list.innerHTML = this.items.map((item, i) => {
+      const act = item.path === cur ? ' fav-active' : '';
+      return `<div class="fav-item${act}" data-path="${esc(item.path)}" data-idx="${i}"
+          title="${esc(item.path)}" onclick="Favs.navigate('${esc(item.path)}')">
+        <span class="fav-handle" title="ドラッグして並べ替え">⠿</span>
+        <span class="fav-icon">${item.icon}</span>
+        <span class="fav-name">${esc(item.name)}</span>
+        <span class="fav-remove" onclick="Favs.remove('${esc(item.path)}',event)" title="削除">✕</span>
+      </div>`;
+    }).join('');
+  },
+
+  init() {
+    if (this._ready) return;
+    this._ready = true;
+    this.load();
+    this.render();
+    this._setupFavResize();
+    this._setupDrop();
+    this._setupReorder();
+  },
+
+  _setupReorder() {
+    const list = document.getElementById('fav-list');
+    if (!list || list.dataset.reorderInit) return;
+    list.dataset.reorderInit = '1';
+    let dragSrcIdx = -1;
+
+    // ハンドルを押したときだけ draggable を有効にする
+    list.addEventListener('mousedown', e => {
+      const handle = e.target.closest('.fav-handle');
+      if (!handle) return;
+      const item = handle.closest('.fav-item');
+      if (item) item.setAttribute('draggable', 'true');
+    });
+
+    list.addEventListener('dragstart', e => {
+      const item = e.target.closest('.fav-item[draggable="true"]');
+      if (!item) { e.preventDefault(); return; }
+      dragSrcIdx = +item.dataset.idx;
+      e.dataTransfer.setData('text/fav-reorder', String(dragSrcIdx));
+      e.dataTransfer.effectAllowed = 'move';
+      // 少し遅らせてクラスを付与（即時だと掴んだ見た目が消える）
+      setTimeout(() => item.classList.add('fav-dragging'), 0);
+    });
+
+    list.addEventListener('dragover', e => {
+      if (!e.dataTransfer.types.includes('text/fav-reorder')) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const target = e.target.closest('.fav-item');
+      list.querySelectorAll('.fav-item').forEach(el =>
+        el.classList.remove('fav-drop-above', 'fav-drop-below'));
+      if (target && +target.dataset.idx !== dragSrcIdx) {
+        const r = target.getBoundingClientRect();
+        target.classList.add(e.clientY < r.top + r.height / 2 ? 'fav-drop-above' : 'fav-drop-below');
+      }
+    });
+
+    list.addEventListener('dragleave', e => {
+      if (!e.dataTransfer.types.includes('text/fav-reorder')) return;
+      if (!list.contains(e.relatedTarget)) {
+        list.querySelectorAll('.fav-item').forEach(el =>
+          el.classList.remove('fav-drop-above', 'fav-drop-below'));
+      }
+    });
+
+    list.addEventListener('drop', e => {
+      if (!e.dataTransfer.types.includes('text/fav-reorder')) return;
+      e.preventDefault();
+      list.querySelectorAll('.fav-item').forEach(el =>
+        el.classList.remove('fav-drop-above', 'fav-drop-below', 'fav-dragging'));
+
+      const srcIdx = +e.dataTransfer.getData('text/fav-reorder');
+      const target = e.target.closest('.fav-item');
+      if (!target || isNaN(+target.dataset.idx)) { dragSrcIdx = -1; return; }
+      const tgtIdx = +target.dataset.idx;
+      if (srcIdx === tgtIdx) { dragSrcIdx = -1; return; }
+
+      const r = target.getBoundingClientRect();
+      let insertAt = e.clientY < r.top + r.height / 2 ? tgtIdx : tgtIdx + 1;
+      const moved = this.items.splice(srcIdx, 1)[0];
+      if (insertAt > srcIdx) insertAt--;
+      this.items.splice(insertAt, 0, moved);
+
+      this.save();
+      this.render();
+      dragSrcIdx = -1;
+    });
+
+    list.addEventListener('dragend', () => {
+      list.querySelectorAll('.fav-item').forEach(el => {
+        el.classList.remove('fav-dragging', 'fav-drop-above', 'fav-drop-below');
+        el.removeAttribute('draggable');
+      });
+      dragSrcIdx = -1;
+    });
+  },
+
+  _setupFavResize() {
+    const handle   = document.getElementById('fav-resize');
+    const favPanel = document.getElementById('fav-panel');
+    let drag=false, sy=0, sh=0;
+    handle.addEventListener('mousedown', e => {
+      drag=true; sy=e.clientY; sh=favPanel.getBoundingClientRect().height;
+      handle.classList.add('dragging'); document.body.style.cursor='row-resize';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!drag) return;
+      const h = Math.max(52, Math.min(480, sh + e.clientY - sy));
+      favPanel.style.height = h+'px';
+      favPanel.style.flex = 'none';
+    });
+    document.addEventListener('mouseup', () => {
+      if (!drag) return;
+      drag=false; handle.classList.remove('dragging'); document.body.style.cursor='';
+      Layout.save();
+    });
+  },
+
+  _setupDrop() {
+    const list = document.getElementById('fav-list');
+    if (!list) return;
+    ['dragover','dragenter'].forEach(ev =>
+      list.addEventListener(ev, e => {
+        if (e.dataTransfer.types.includes('text/fav-reorder')) return;
+        e.preventDefault(); list.classList.add('fav-drop-hint');
+      })
+    );
+    list.addEventListener('dragleave', e => {
+      if (!list.contains(e.relatedTarget)) list.classList.remove('fav-drop-hint');
+    });
+    list.addEventListener('drop', e => {
+      if (e.dataTransfer.types.includes('text/fav-reorder')) return;
+      e.preventDefault();
+      list.classList.remove('fav-drop-hint');
+      try {
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        const tab  = activeTab(data.side);
+        for (const p of data.paths) {
+          const item = tab.items.find(i => i.path === p);
+          if (item?.is_dir && !this.items.find(f => f.path === p)) {
+            this.items.push({ name: pathBasename(p)||p, path: p, icon: '📁' });
+          }
+        }
+        this.save();
+        this.render();
+      } catch {}
+    });
+  },
+};
+
+// ─────────────────── RENAMER ────────────────────────────────────────────────
+const Renamer = {
+  files: [],
+  mode: 'replace',
+  _ready: false,
+
+  open() {
+    const tab = activeTab(ST.active);
+    if (!tab.selected.size) { FM.setStatus('リネームするファイルを選択してください'); return; }
+    this.files = [...tab.selected].map(path => {
+      const name  = pathBasename(path);
+      const dotIdx = name.lastIndexOf('.');
+      return {
+        path,
+        name,
+        base: dotIdx > 0 ? name.slice(0, dotIdx) : name,
+        ext:  dotIdx > 0 ? name.slice(dotIdx)     : '',
+        dir:  path.slice(0, path.length - name.length),
+      };
+    });
+    document.getElementById('ren-hdr-count').textContent = `${this.files.length} 件選択`;
+    document.getElementById('renamer-overlay').classList.add('visible');
+    this._setup();
+    this.updatePreview();
+  },
+
+  close() {
+    document.getElementById('renamer-overlay').classList.remove('visible');
+  },
+
+  setMode(mode) {
+    this.mode = mode;
+    document.querySelectorAll('.ren-mode-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.mode === mode));
+    document.querySelectorAll('.ren-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('ren-panel-' + mode)?.classList.add('active');
+    const hideApply = mode === 'ext' || mode === 'number';
+    document.getElementById('ren-apply-field').style.display = hideApply ? 'none' : '';
+    document.getElementById('ren-apply-sep').style.display   = hideApply ? 'none' : '';
+    this.updatePreview();
+  },
+
+  _setup() {
+    if (this._ready) return;
+    this._ready = true;
+    document.getElementById('ren-opts').addEventListener('input',  () => this.updatePreview());
+    document.getElementById('ren-opts').addEventListener('change', () => this.updatePreview());
+    document.getElementById('renamer-overlay').addEventListener('click', e => {
+      if (e.target.id === 'renamer-overlay') this.close();
+    });
+    document.getElementById('renamer-overlay').addEventListener('keydown', e => {
+      if (e.key === 'Escape') this.close();
+    });
+  },
+
+  _xform(s, idx) {
+    switch (this.mode) {
+      case 'replace': {
+        const find    = document.getElementById('ren-find').value;
+        const repl    = document.getElementById('ren-repl').value;
+        if (!find) return s;
+        const useRx   = document.getElementById('ren-regex').checked;
+        const caseSen = document.getElementById('ren-casesen').checked;
+        if (useRx) {
+          try { return s.replace(new RegExp(find, caseSen ? 'g' : 'gi'), repl); }
+          catch { return null; }
+        }
+        const safe = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return s.replace(new RegExp(safe, caseSen ? 'g' : 'gi'), repl);
+      }
+      case 'number': {
+        const pos    = document.getElementById('ren-num-pos').value;
+        const sep    = document.getElementById('ren-num-sep').value;
+        const start  = parseInt(document.getElementById('ren-num-start').value)  || 0;
+        const step   = parseInt(document.getElementById('ren-num-step').value)   || 1;
+        const digits = parseInt(document.getElementById('ren-num-digits').value) || 2;
+        const num    = String(start + idx * step).padStart(digits, '0');
+        return pos === 'prefix' ? num + sep + s : s + sep + num;
+      }
+      case 'affix': {
+        const pre = document.getElementById('ren-prefix').value;
+        const suf = document.getElementById('ren-suffix').value;
+        return pre + s + suf;
+      }
+      case 'case': {
+        const cm = document.querySelector('input[name="ren-case"]:checked')?.value || 'lower';
+        if (cm === 'upper')    return s.toUpperCase();
+        if (cm === 'lower')    return s.toLowerCase();
+        if (cm === 'title')    return s.replace(/(?:^|[\s\-_.])\S/g, c => c.toUpperCase());
+        if (cm === 'sentence') return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+        return s;
+      }
+      case 'remove': {
+        const front = Math.max(0, parseInt(document.getElementById('ren-rm-front').value) || 0);
+        const back  = Math.max(0, parseInt(document.getElementById('ren-rm-back').value)  || 0);
+        let r = s;
+        if (front) r = r.slice(front);
+        if (back)  r = back < r.length ? r.slice(0, -back) : '';
+        return r;
+      }
+      default: return s;
+    }
+  },
+
+  getNewName(file, idx) {
+    if (this.mode === 'ext') {
+      let newExt = (document.getElementById('ren-new-ext').value || '').trim();
+      if (newExt && !newExt.startsWith('.')) newExt = '.' + newExt;
+      return file.base + newExt;
+    }
+
+    const applyTo = document.getElementById('ren-apply-to').value;
+    let base = file.base, ext = file.ext;
+
+    if (applyTo === 'name' || applyTo === 'both') {
+      const r = this._xform(base, idx);
+      if (r === null) return null;
+      base = r;
+    }
+    if ((applyTo === 'ext' || applyTo === 'both') && ext) {
+      const skipExt = this.mode === 'case' && !document.getElementById('ren-case-ext').checked;
+      if (!skipExt) {
+        const r = this._xform(ext.slice(1), idx);
+        if (r !== null) ext = '.' + r;
+      }
+    }
+    return base + ext;
+  },
+
+  updatePreview() {
+    const list = document.getElementById('ren-prev-list');
+    const ftrSt = document.getElementById('ren-ftr-st');
+    const newNames = new Set();
+    let changed = 0, conflicts = 0, errors = 0;
+
+    const rows = this.files.map((file, idx) => {
+      let newName;
+      try { newName = this.getNewName(file, idx); }
+      catch { newName = null; }
+
+      if (newName === null) {
+        errors++;
+        return `<div class="ren-prow error">
+          <div class="rp-old" title="${esc(file.name)}">${esc(file.name)}</div>
+          <div class="rp-arr">→</div>
+          <div class="rp-new">正規表現エラー</div>
+          <div class="rp-st">✕</div>
+        </div>`;
+      }
+
+      const same     = newName === file.name;
+      const conflict = !same && newNames.has(newName);
+      if (!same) { changed++; newNames.add(newName); }
+      if (conflict) conflicts++;
+
+      const cls   = conflict ? 'conflict' : same ? '' : 'changed';
+      const state = conflict ? '⚠' : same ? '—' : '✓';
+      return `<div class="ren-prow ${cls}">
+        <div class="rp-old" title="${esc(file.name)}">${esc(file.name)}</div>
+        <div class="rp-arr">→</div>
+        <div class="rp-new" title="${esc(newName)}">${esc(newName)}</div>
+        <div class="rp-st">${state}</div>
+      </div>`;
+    });
+
+    list.innerHTML = rows.join('');
+    const parts = [`${this.files.length} 件中 ${changed} 件が変更されます`];
+    if (conflicts) parts.push(`⚠ ${conflicts} 件の名前が重複`);
+    if (errors)    parts.push(`✕ ${errors} 件のエラー`);
+    ftrSt.textContent = parts.join('　');
+
+    const applyBtn = document.getElementById('ren-apply-btn');
+    applyBtn.disabled = changed === 0 || errors > 0;
+  },
+
+  async apply() {
+    const btn = document.getElementById('ren-apply-btn');
+    btn.disabled = true;
+    btn.textContent = '実行中...';
+    let ok = 0, fail = 0;
+    for (let i = 0; i < this.files.length; i++) {
+      const file = this.files[i];
+      let newName;
+      try { newName = this.getNewName(file, i); } catch { fail++; continue; }
+      if (!newName || newName === file.name) continue;
+      try {
+        await API.rename(file.path, file.dir + newName);
+        ok++;
+      } catch(e) { fail++; console.error('rename failed', file.path, e); }
+    }
+    btn.disabled = false;
+    btn.textContent = 'リネーム実行';
+    this.close();
+    FM.setStatus(`リネーム完了: ${ok} 件${fail ? ` (失敗: ${fail})` : ''}`);
+    FM.refresh(ST.active);
+  },
+};
+
+// ─────────────────── TREE ───────────────────────────────────────────────────
+const Tree = {
+  root: null,
+  nodeMap: {},
+  visible: false,
+  _listenerAttached: false,
+
+  toggle() {
+    this.visible = !this.visible;
+    document.getElementById('sidebar').classList.toggle('hidden', !this.visible);
+    document.getElementById('sidebar-resize').classList.toggle('hidden', !this.visible);
+    document.getElementById('btn-tree').classList.toggle('active', this.visible);
+    Layout.save();
+    if (this.visible && !this.root) {
+      this.init();
+      Favs.init();
+    } else if (this.visible) {
+      this.render();
+      Favs.render();
+    }
+  },
+
+  async init() {
+    try {
+      const data = await API.listFiles('~');
+      const name = data.path.replace(/.*[/\\]/, '') || data.path;
+      this.root = this._makeNode(data.path, name, 0);
+      this.root.expanded = true;
+      this.root.loaded = true;
+      this.root.children = data.items
+        .filter(i => i.is_dir)
+        .map(i => this._makeNode(i.path, i.name, 1));
+      this.root.children.forEach(c => { this.nodeMap[c.path] = c; });
+      this.nodeMap[data.path] = this.root;
+      this.render();
+      this._attachListener();
+      this._setupResize();
+    } catch(e) {
+      document.getElementById('tree-content').innerHTML =
+        `<div class="tree-loading" style="color:#f87171">エラー: ${esc(e.message)}</div>`;
+    }
+  },
+
+  _makeNode(path, name, depth) {
+    return { path, name, depth, expanded: false, loaded: false, children: [], hasKids: true };
+  },
+
+  _attachListener() {
+    if (this._listenerAttached) return;
+    this._listenerAttached = true;
+    document.getElementById('tree-content').addEventListener('click', async e => {
+      const nodeEl = e.target.closest('.tree-node');
+      if (!nodeEl) return;
+      const path = nodeEl.dataset.path;
+      if (e.target.classList.contains('tree-toggle')) {
+        await this.toggleNode(path);
+      } else {
+        FM.navigateTo(ST.active, path);
+        this.syncHighlight(path);
+      }
+    });
+  },
+
+  async toggleNode(path) {
+    const node = this.nodeMap[path];
+    if (!node || !node.hasKids) return;
+    if (node.expanded) {
+      node.expanded = false;
+      this.render();
+      return;
+    }
+    if (!node.loaded) {
+      try {
+        const data = await API.listFiles(path);
+        node.children = data.items
+          .filter(i => i.is_dir)
+          .map(i => {
+            if (!this.nodeMap[i.path]) {
+              const n = this._makeNode(i.path, i.name, node.depth + 1);
+              this.nodeMap[i.path] = n;
+            }
+            return this.nodeMap[i.path];
+          });
+        node.hasKids = node.children.length > 0;
+        node.loaded = true;
+      } catch(e) {
+        node.loaded = true;
+        node.hasKids = false;
+      }
+    }
+    node.expanded = node.hasKids;
+    this.render();
+  },
+
+  refresh() {
+    this.root = null;
+    this.nodeMap = {};
+    this._listenerAttached = false;
+    document.getElementById('tree-content').innerHTML =
+      '<div class="tree-loading">読み込み中...</div>';
+    this.init();
+  },
+
+  syncHighlight(path) {
+    if (!this.visible) return;
+    document.querySelectorAll('#tree-content .tree-node').forEach(el => {
+      el.classList.toggle('tree-active', el.dataset.path === path);
+    });
+    const active = document.querySelector(`#tree-content .tree-node[data-path="${CSS.escape(path)}"]`);
+    active?.scrollIntoView({ block: 'nearest' });
+  },
+
+  _getVisible(node, result = []) {
+    result.push(node);
+    if (node.expanded) node.children.forEach(c => this._getVisible(c, result));
+    return result;
+  },
+
+  render() {
+    if (!this.root || !this.visible) return;
+    const currentPath = activeTab(ST.active)?.path || '';
+    const nodes = this._getVisible(this.root);
+    const html = nodes.map(node => {
+      const indent = node.depth * 14;
+      let toggleHtml;
+      if (!node.hasKids && node.loaded) {
+        toggleHtml = `<span class="tree-toggle" style="opacity:0;pointer-events:none">▶</span>`;
+      } else if (node.expanded) {
+        toggleHtml = `<span class="tree-toggle" data-path="${esc(node.path)}" title="折りたたむ">▼</span>`;
+      } else {
+        toggleHtml = `<span class="tree-toggle" data-path="${esc(node.path)}" title="展開する">▶</span>`;
+      }
+      const active = node.path === currentPath ? ' tree-active' : '';
+      return `<div class="tree-node${active}" data-path="${esc(node.path)}"
+          style="padding-left:${4 + indent}px" title="${esc(node.path)}">
+        ${toggleHtml}
+        <span class="tree-node-icon">${node.expanded ? '📂' : '📁'}</span>
+        <span class="tree-node-name">${esc(node.name)}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('tree-content').innerHTML = html;
+  },
+
+  _setupResize() {
+    const resizer = document.getElementById('sidebar-resize');
+    const panel   = document.getElementById('sidebar');
+    let dragging = false, startX = 0, startW = 0;
+    resizer.addEventListener('mousedown', e => {
+      dragging = true; startX = e.clientX;
+      startW = panel.getBoundingClientRect().width;
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const w = Math.max(140, Math.min(520, startW + e.clientX - startX));
+      panel.style.width = w + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      Layout.save();
+    });
+  },
+};
+
+// ── HTML escape ─────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── File list draggable attribute reset ──────────────────────────────────────
+document.addEventListener('dragend', e => {
+  const row = e.target.closest?.('.file-row');
+  if (row) row.draggable = false;
+});
+
+// ── Start ────────────────────────────────────────────────────────────────────
+FM.init();
+</script>
+</body>
+</html>
