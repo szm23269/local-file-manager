@@ -2,12 +2,12 @@
 chcp 65001 >nul
 setlocal EnableDelayedExpansion
 
-set "APP_NAME=File Manager"
-set "INSTALL_DIR=%LOCALAPPDATA%\FileManager"
+set "APP_NAME=Filie"
+set "INSTALL_DIR=%LOCALAPPDATA%\Filie"
 
 echo.
 echo ================================================
-echo   File Manager インストーラー (Windows)
+echo   Filie インストーラー (Windows)
 echo ================================================
 echo.
 
@@ -58,21 +58,21 @@ echo [OK] パッケージのインストール完了
 set "LAUNCH_BAT=%INSTALL_DIR%\launch.bat"
 (
 echo @echo off
-echo cd /d "%%LOCALAPPDATA%%\FileManager"
-echo start "" "%%LOCALAPPDATA%%\FileManager\venv\Scripts\python.exe" server.py
+echo cd /d "%%LOCALAPPDATA%%\Filie"
+echo start "" "%%LOCALAPPDATA%%\Filie\venv\Scripts\python.exe" server.py
 echo timeout /t 2 /nobreak ^>nul
 echo start http://127.0.0.1:8000
 ) > "%LAUNCH_BAT%"
 
 :: ── デスクトップショートカット ─────────────────────────
 set "SHORTCUT_PS=%TEMP%\create_shortcut.ps1"
-set "DESKTOP_LINK=%USERPROFILE%\Desktop\File Manager.lnk"
+set "DESKTOP_LINK=%USERPROFILE%\Desktop\Filie.lnk"
 (
 echo $ws = New-Object -ComObject WScript.Shell
 echo $s = $ws.CreateShortcut('%DESKTOP_LINK%'^)
 echo $s.TargetPath = '%LAUNCH_BAT%'
 echo $s.WorkingDirectory = '%INSTALL_DIR%'
-echo $s.Description = 'File Manager'
+echo $s.Description = 'Filie'
 echo $s.Save(^)
 ) > "%SHORTCUT_PS%"
 powershell -ExecutionPolicy Bypass -File "%SHORTCUT_PS%" >nul 2>&1
@@ -84,7 +84,7 @@ echo   インストール完了！
 echo ================================================
 echo.
 echo 起動方法:
-echo   1. デスクトップの「File Manager」ショートカットをダブルクリック
+echo   1. デスクトップの「Filie」ショートカットをダブルクリック
 echo   2. または: %LAUNCH_BAT%
 echo.
 echo アンインストール: フォルダを削除してください

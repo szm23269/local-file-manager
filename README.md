@@ -1,4 +1,4 @@
-# File Manager
+# Filie
 
 ブラウザで動くローカルファイルマネージャー。Directory Opus にインスパイアされたデュアルペイン型。
 
@@ -25,12 +25,12 @@ chmod +x install-mac.sh
 ./install-mac.sh
 ```
 
-デスクトップの「File Manager.command」をダブルクリックで起動。
+デスクトップの「Filie.command」をダブルクリックで起動。
 
 ### Windows
 
 `install-windows.bat` をダブルクリック。  
-デスクトップの「File Manager」ショートカットで起動。
+デスクトップの「Filie」ショートカットで起動。
 
 ## 手動起動
 

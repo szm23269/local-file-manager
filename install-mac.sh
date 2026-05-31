@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-APP_NAME="File Manager"
-INSTALL_DIR="$HOME/.local/share/file-manager"
+APP_NAME="Filie"
+INSTALL_DIR="$HOME/.local/share/filie"
 BIN_DIR="$HOME/.local/bin"
-LAUNCH_SCRIPT="$BIN_DIR/file-manager"
+LAUNCH_SCRIPT="$BIN_DIR/filie"
 DESKTOP="$HOME/Desktop"
 
 GREEN='\033[0;32m'
@@ -14,7 +14,7 @@ NC='\033[0m'
 
 echo ""
 echo "================================================"
-echo "  File Manager インストーラー (macOS)"
+echo "  Filie インストーラー (macOS)"
 echo "================================================"
 echo ""
 
@@ -56,7 +56,7 @@ echo -e "${GREEN}✅ パッケージのインストール完了${NC}"
 # ── 起動スクリプト ────────────────────────────────────
 cat > "$LAUNCH_SCRIPT" << 'EOF'
 #!/bin/bash
-INSTALL_DIR="$HOME/.local/share/file-manager"
+INSTALL_DIR="$HOME/.local/share/filie"
 cd "$INSTALL_DIR"
 "$INSTALL_DIR/venv/bin/python" server.py &
 sleep 1.5
@@ -66,17 +66,17 @@ EOF
 chmod +x "$LAUNCH_SCRIPT"
 
 # ── デスクトップ .command ファイル ─────────────────────
-COMMAND_FILE="$DESKTOP/File Manager.command"
+COMMAND_FILE="$DESKTOP/Filie.command"
 cat > "$COMMAND_FILE" << EOF
 #!/bin/bash
-INSTALL_DIR="\$HOME/.local/share/file-manager"
+INSTALL_DIR="\$HOME/.local/share/filie"
 cd "\$INSTALL_DIR"
 "\$INSTALL_DIR/venv/bin/python" server.py &
 PID=\$!
 sleep 1.5
 open http://127.0.0.1:8000
 echo ""
-echo "File Manager が起動しました → http://127.0.0.1:8000"
+echo "Filie が起動しました → http://127.0.0.1:8000"
 echo "このウィンドウを閉じるとサーバーが停止します。"
 wait \$PID
 EOF
@@ -100,8 +100,8 @@ echo -e "  ${GREEN}✅ インストール完了！${NC}"
 echo "================================================"
 echo ""
 echo "起動方法:"
-echo "  ① デスクトップの「File Manager.command」をダブルクリック"
-echo "  ② ターミナルで: file-manager"
+echo "  ① デスクトップの「Filie.command」をダブルクリック"
+echo "  ② ターミナルで: filie"
 echo ""
 echo "アンインストール:"
 echo "  rm -rf $INSTALL_DIR $LAUNCH_SCRIPT \"$COMMAND_FILE\""

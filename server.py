@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 
-app = FastAPI(title="File Manager")
+app = FastAPI(title="Filie")
 
 app.add_middleware(
     CORSMiddleware,
