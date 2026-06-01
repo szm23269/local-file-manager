@@ -481,7 +481,9 @@
       </li>
     </ul>
     <div class="note">
-      <strong>ヒント:</strong> 初回起動時に「開発元が未確認」という警告が出た場合は、右クリック →「開く」を選んでください。
+      ⚠️ <strong>「開発元が未確認」の警告が出た場合:</strong><br>
+      <code style="color:var(--green)">install-mac.sh</code> または <code style="color:var(--green)">Filie.command</code> を右クリック →「開く」→「開く」をクリックしてください。<br>
+      システム環境設定 →「セキュリティとプライバシー」→「このまま開く」でも許可できます。
     </div>
   </div>
 
@@ -492,30 +494,34 @@
         <div class="step-body">
           <div class="step-title">Python 3 のインストール</div>
           <div class="step-desc"><a href="https://www.python.org/downloads/" style="color:var(--accent)">python.org</a> から Python 3.10 以降をダウンロードしてインストールします。</div>
-          <div class="note" style="margin-top:8px;">⚠️ インストール時に <strong>「Add Python to PATH」にチェックを入れる</strong>のを忘れずに！</div>
+          <div class="note" style="margin-top:8px;">⚠️ インストール時に <strong>「Add Python to PATH」にチェックを入れる</strong>のを忘れずに！チェックを入れないと動作しません。</div>
         </div>
       </li>
       <li>
         <div class="step-num">2</div>
         <div class="step-body">
-          <div class="step-title">インストーラーをダウンロード</div>
-          <div class="step-desc">以下のボタンからダウンロードし、任意のフォルダに解凍します。</div>
-          <a href="https://github.com/szm23269/local-file-manager/archive/refs/heads/main.zip" class="btn btn-win" style="margin-top:4px;display:inline-flex">⬇ Windows 版をダウンロード</a>
+          <div class="step-title">ZIP をダウンロードして解凍</div>
+          <div class="step-desc">以下のボタンからダウンロードし、ZIP を右クリック →「すべて展開」で解凍します。</div>
+          <a href="https://github.com/szm23269/local-file-manager/archive/refs/heads/main.zip" class="btn btn-win" style="margin-top:8px;display:inline-flex">⬇ Windows 版をダウンロード</a>
+          <div class="note" style="margin-top:12px;">📁 解凍すると <code style="color:var(--green)">local-file-manager-main</code> フォルダが作成されます。<strong>そのフォルダの中に入って</strong>から次のステップへ進んでください。</div>
         </div>
       </li>
       <li>
         <div class="step-num">3</div>
         <div class="step-body">
           <div class="step-title">install-windows.bat を実行</div>
-          <div class="step-desc">解凍したフォルダの中の <strong style="color:var(--text-bright)">install-windows.bat</strong> をダブルクリックします。</div>
-          <div class="note" style="margin-top:8px;">⚠️ 「WindowsによってPCが保護されました」が表示された場合は、「詳細情報」→「実行」をクリック。</div>
+          <div class="step-desc">フォルダ内の <strong style="color:var(--text-bright)">install-windows.bat</strong> をダブルクリックします。黒いコマンドプロンプト画面が開き、自動でセットアップが進みます。</div>
+          <div class="note" style="margin-top:8px;">
+            ⚠️ <strong>「Windows によって PC が保護されました」</strong>と表示された場合:<br>
+            「詳細情報」をクリック → 「実行」ボタンをクリック
+          </div>
         </div>
       </li>
       <li>
         <div class="step-num">4</div>
         <div class="step-body">
           <div class="step-title">起動</div>
-          <div class="step-desc">デスクトップに作成された「<strong style="color:var(--text-bright)">Filie</strong>」ショートカットをダブルクリックします。</div>
+          <div class="step-desc">「Installation complete!」と表示されたらセットアップ完了です。デスクトップに作成された「<strong style="color:var(--text-bright)">Filie</strong>」ショートカットをダブルクリックするとブラウザが自動で開きます。</div>
         </div>
       </li>
     </ul>
@@ -628,6 +634,26 @@
         起動時に自動でブラウザが開かない場合は？ <span class="arrow">▼</span>
       </button>
       <div class="faq-a">ブラウザのアドレスバーに <code style="color:var(--green)">http://127.0.0.1:8000</code> と入力してアクセスしてください。</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Windows で「PC が保護されました」と表示される <span class="arrow">▼</span>
+      </button>
+      <div class="faq-a">
+        Windows SmartScreen の警告です。署名のない .bat ファイルには自動的に表示されます。<br><br>
+        対処: 「詳細情報」をクリック → 下部に表示される「実行」ボタンをクリックしてください。<br><br>
+        Filie のコードはすべて <a href="https://github.com/szm23269/local-file-manager" style="color:var(--accent)" target="_blank">GitHub 上で公開</a>されており、何も隠れた処理はありません。
+      </div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Windows インストール中にエラーが出る場合は？ <span class="arrow">▼</span>
+      </button>
+      <div class="faq-a">
+        よくある原因:<br><br>
+        ① <strong>Python が PATH に登録されていない</strong> — Python のインストール画面で「Add Python to PATH」にチェックを入れて再インストールしてください。<br><br>
+        ② <strong>ZIP を解凍せずに直接実行している</strong> — ZIP ファイルを右クリック →「すべて展開」で解凍し、できた <code style="color:var(--green)">local-file-manager-main</code> フォルダの中の bat ファイルを実行してください。
+      </div>
     </div>
   </div>
 </section>
