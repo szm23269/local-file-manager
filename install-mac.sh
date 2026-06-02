@@ -6,6 +6,7 @@ INSTALL_DIR="$HOME/.local/share/filie"
 BIN_DIR="$HOME/.local/bin"
 LAUNCH_SCRIPT="$BIN_DIR/filie"
 DESKTOP="$HOME/Desktop"
+PYTHON_VER="3.12.7"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -18,32 +19,60 @@ echo "  Filie インストーラー (macOS)"
 echo "================================================"
 echo ""
 
-# ── Python 確認 ──────────────────────────────────────
-if ! command -v python3 &>/dev/null; then
-  echo -e "${RED}❌ Python 3 が見つかりません。${NC}"
+# ── Python 自動インストール ───────────────────────────
+install_python() {
+  echo -e "${YELLOW}⚠ Python 3 が見つかりません。自動インストールします...${NC}"
   echo ""
-  echo "以下のいずれかの方法でインストールしてください:"
-  echo "  1. https://www.python.org/downloads/ からダウンロード"
-  echo "  2. Homebrew: brew install python3"
+
+  # Homebrew が使える場合
+  if command -v brew &>/dev/null; then
+    echo "📦 Homebrew で Python をインストール中..."
+    brew install python3
+    hash -r 2>/dev/null || true
+    return 0
+  fi
+
+  # Homebrew がない場合 → 公式 .pkg をダウンロードしてインストール
+  PKG="python-${PYTHON_VER}-macos11.pkg"
+  PKG_URL="https://www.python.org/ftp/python/${PYTHON_VER}/${PKG}"
+  echo "📥 Python ${PYTHON_VER} をダウンロード中..."
+  echo "   (数分かかる場合があります)"
+  echo ""
+  curl -L --progress-bar -o "/tmp/${PKG}" "${PKG_URL}"
+
+  echo ""
+  echo "🔧 Python をインストール中... (管理者パスワードが必要です)"
+  sudo installer -pkg "/tmp/${PKG}" -target /
+  rm -f "/tmp/${PKG}"
+  hash -r 2>/dev/null || true
+}
+
+if ! command -v python3 &>/dev/null; then
+  install_python
+fi
+
+# 再確認
+if ! command -v python3 &>/dev/null; then
+  echo -e "${RED}❌ Python のインストールに失敗しました。${NC}"
+  echo "手動でインストールしてください: https://www.python.org/downloads/"
   exit 1
 fi
 
-PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-echo -e "${GREEN}✅ Python $PY_VER が見つかりました${NC}"
+PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')")
+echo -e "${GREEN}✅ Python ${PY_VER} が見つかりました${NC}"
 
-# ── インストール先作成 ────────────────────────────────
+# ── インストール先作成 ─────────────────────────────────
 echo ""
 echo "📁 インストール先: $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 mkdir -p "$BIN_DIR"
 
-# スクリプトのディレクトリからコピー
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cp "$SCRIPT_DIR/server.py"       "$INSTALL_DIR/"
-cp "$SCRIPT_DIR/index.html"      "$INSTALL_DIR/"
+cp "$SCRIPT_DIR/server.py"        "$INSTALL_DIR/"
+cp "$SCRIPT_DIR/index.html"       "$INSTALL_DIR/"
 cp "$SCRIPT_DIR/requirements.txt" "$INSTALL_DIR/"
 
-# ── 仮想環境 ──────────────────────────────────────────
+# ── 仮想環境と依存パッケージ ────────────────────────────
 echo ""
 echo "🔧 Python 仮想環境を作成中..."
 python3 -m venv "$INSTALL_DIR/venv"
@@ -53,7 +82,7 @@ echo "📦 依存パッケージをインストール中..."
 "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt" -q
 echo -e "${GREEN}✅ パッケージのインストール完了${NC}"
 
-# ── 起動スクリプト ────────────────────────────────────
+# ── ターミナル用起動スクリプト ───────────────────────────
 cat > "$LAUNCH_SCRIPT" << 'EOF'
 #!/bin/bash
 INSTALL_DIR="$HOME/.local/share/filie"
@@ -65,7 +94,7 @@ wait
 EOF
 chmod +x "$LAUNCH_SCRIPT"
 
-# ── デスクトップ .command ファイル ─────────────────────
+# ── デスクトップ .command ファイル ────────────────────────
 COMMAND_FILE="$DESKTOP/Filie.command"
 cat > "$COMMAND_FILE" << EOF
 #!/bin/bash
@@ -82,7 +111,7 @@ wait \$PID
 EOF
 chmod +x "$COMMAND_FILE"
 
-# PATH に BIN_DIR を追加（未追加の場合）
+# ── PATH 登録 ──────────────────────────────────────────
 SHELL_RC=""
 if [[ "$SHELL" == *"zsh"* ]]; then
   SHELL_RC="$HOME/.zshrc"

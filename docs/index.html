@@ -449,34 +449,25 @@
       <li>
         <div class="step-num">1</div>
         <div class="step-body">
-          <div class="step-title">Python 3 の確認</div>
-          <div class="step-desc">ターミナルで Python バージョンを確認します。</div>
-          <div class="code">python3 --version</div>
-          <div class="step-desc" style="margin-top:8px;">表示されない場合は <a href="https://www.python.org/downloads/" style="color:var(--accent)">python.org</a> からインストール。</div>
+          <div class="step-title">ZIP をダウンロードして解凍</div>
+          <div class="step-desc">以下のボタンからダウンロードし、ZIP をダブルクリックで解凍します。</div>
+          <a href="https://github.com/szm23269/local-file-manager/archive/refs/heads/main.zip" class="btn btn-mac" style="margin-top:8px;display:inline-flex">⬇ macOS 版をダウンロード</a>
         </div>
       </li>
       <li>
         <div class="step-num">2</div>
         <div class="step-body">
-          <div class="step-title">インストーラーをダウンロード</div>
-          <div class="step-desc">以下のボタンからファイル一式をダウンロードし、解凍します。</div>
-          <a href="https://github.com/szm23269/local-file-manager/archive/refs/heads/main.zip" class="btn btn-mac" style="margin-top:4px;display:inline-flex">⬇ macOS 版をダウンロード</a>
-        </div>
-      </li>
-      <li>
-        <div class="step-num">3</div>
-        <div class="step-body">
           <div class="step-title">インストーラーを実行</div>
-          <div class="step-desc">解凍したフォルダでターミナルを開き、以下を実行します。</div>
+          <div class="step-desc">解凍されたフォルダ内でターミナルを開き、以下を実行します。<strong>Python がなければ自動でインストールされます。</strong></div>
           <div class="code">chmod +x install-mac.sh
 ./install-mac.sh</div>
         </div>
       </li>
       <li>
-        <div class="step-num">4</div>
+        <div class="step-num">3</div>
         <div class="step-body">
           <div class="step-title">起動</div>
-          <div class="step-desc">デスクトップに作成された「<strong style="color:var(--text-bright)">Filie.command</strong>」をダブルクリックします。ブラウザが自動で開きます。</div>
+          <div class="step-desc">「インストール完了！」と表示されたら、デスクトップの「<strong style="color:var(--text-bright)">Filie.command</strong>」をダブルクリックします。ブラウザが自動で開きます。</div>
         </div>
       </li>
     </ul>
@@ -492,14 +483,6 @@
       <li>
         <div class="step-num">1</div>
         <div class="step-body">
-          <div class="step-title">Python 3 のインストール</div>
-          <div class="step-desc"><a href="https://www.python.org/downloads/" style="color:var(--accent)">python.org</a> から Python 3.10 以降をダウンロードしてインストールします。</div>
-          <div class="note" style="margin-top:8px;">⚠️ インストール時に <strong>「Add Python to PATH」にチェックを入れる</strong>のを忘れずに！チェックを入れないと動作しません。</div>
-        </div>
-      </li>
-      <li>
-        <div class="step-num">2</div>
-        <div class="step-body">
           <div class="step-title">ZIP をダウンロードして解凍</div>
           <div class="step-desc">以下のボタンからダウンロードし、ZIP を右クリック →「すべて展開」で解凍します。</div>
           <a href="https://github.com/szm23269/local-file-manager/archive/refs/heads/main.zip" class="btn btn-win" style="margin-top:8px;display:inline-flex">⬇ Windows 版をダウンロード</a>
@@ -507,10 +490,10 @@
         </div>
       </li>
       <li>
-        <div class="step-num">3</div>
+        <div class="step-num">2</div>
         <div class="step-body">
           <div class="step-title">install-windows.bat を実行</div>
-          <div class="step-desc">フォルダ内の <strong style="color:var(--text-bright)">install-windows.bat</strong> をダブルクリックします。黒いコマンドプロンプト画面が開き、自動でセットアップが進みます。</div>
+          <div class="step-desc">フォルダ内の <strong style="color:var(--text-bright)">install-windows.bat</strong> をダブルクリックします。<strong>Python がなければ自動でインストールされます。</strong>黒いコマンドプロンプト画面が開き、すべて自動でセットアップが進みます。</div>
           <div class="note" style="margin-top:8px;">
             ⚠️ <strong>「Windows によって PC が保護されました」</strong>と表示された場合:<br>
             「詳細情報」をクリック → 「実行」ボタンをクリック
@@ -518,7 +501,7 @@
         </div>
       </li>
       <li>
-        <div class="step-num">4</div>
+        <div class="step-num">3</div>
         <div class="step-body">
           <div class="step-title">起動</div>
           <div class="step-desc">「Installation complete!」と表示されたらセットアップ完了です。デスクトップに作成された「<strong style="color:var(--text-bright)">Filie</strong>」ショートカットをダブルクリックするとブラウザが自動で開きます。</div>
@@ -619,9 +602,9 @@
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        Python のバージョン要件は？ <span class="arrow">▼</span>
+        Python のインストールは必要ですか？ <span class="arrow">▼</span>
       </button>
-      <div class="faq-a">Python 3.10 以上を推奨します。3.8 以降であれば動作しますが、最新版の使用をお勧めします。</div>
+      <div class="faq-a">インストーラーが Python の有無を確認し、なければ自動でインストールします。事前に準備する必要はありません。内部的には Python 3.12 以上を使用します。</div>
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
