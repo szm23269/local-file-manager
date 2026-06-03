@@ -19,7 +19,6 @@ echo "以下のファイル・設定を削除します:"
 echo "  - $INSTALL_DIR"
 echo "  - $LAUNCH_SCRIPT"
 echo "  - $COMMAND_FILE"
-echo "  - ポートリダイレクト設定 (pfctl)"
 echo "  - /etc/hosts の filie エントリ"
 echo ""
 read -p "続行しますか？ [y/N] " confirm
@@ -39,19 +38,6 @@ remove() {
 remove "$INSTALL_DIR"
 remove "$LAUNCH_SCRIPT"
 remove "$COMMAND_FILE"
-
-# ── pfctl ポートリダイレクトの削除 ──────────────────────
-if [ -f "$PLIST" ]; then
-  echo "🔧 ポートリダイレクト設定を削除中... (管理者パスワードが必要です)"
-  sudo launchctl unload "$PLIST" 2>/dev/null || true
-  sudo rm -f "$PLIST"
-  echo -e "  ${GREEN}✅ 削除:${NC} $PLIST"
-fi
-if [ -f "$ANCHOR" ]; then
-  sudo pfctl -a filie -F all 2>/dev/null || true
-  sudo rm -f "$ANCHOR"
-  echo -e "  ${GREEN}✅ 削除:${NC} $ANCHOR"
-fi
 
 # ── /etc/hosts の filie エントリを削除 ─────────────────
 if grep -q "filie" /etc/hosts 2>/dev/null; then

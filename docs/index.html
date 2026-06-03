@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Filie — ローカルファイルマネージャー</title>
-<meta name="description" content="ブラウザで動く高機能ローカルファイルマネージャー。Windows・macOS 対応。ダブルクリックでインストール、http://filie でアクセス。">
+<meta name="description" content="ブラウザで動く高機能ローカルファイルマネージャー。Windows・macOS 対応。ダブルクリックでインストール、http://filie:8000 (macOS) / http://filie (Windows) でアクセス。">
 <style>
   :root {
     --accent: #4f8ef7;
@@ -474,7 +474,7 @@
 <section id="install">
   <div class="section-label">Install</div>
   <h2 class="section-title">インストール方法</h2>
-  <p class="section-sub">Python も含めすべて自動セットアップ。完了後は <strong style="color:var(--accent)">http://filie</strong> をブラウザのお気に入りに登録してください。</p>
+  <p class="section-sub">Python も含めすべて自動セットアップ。完了後は URL をブラウザのお気に入りに登録してください（macOS: http://filie:8000 / Windows: http://filie）。</p>
 
   <div class="install-tabs">
     <button class="install-tab active" onclick="switchTab('mac')">🍎 macOS</button>
@@ -506,7 +506,7 @@
         <div class="step-body">
           <div class="step-title">「Filie を起動」でブラウザが開く &amp; ブックマーク</div>
           <div class="step-desc">完了ダイアログの「Filie を起動」をクリックするとブラウザが開きます。以下の URL をお気に入りに登録してください。次回からはデスクトップの <strong style="color:var(--text-bright)">Filie.command</strong> をダブルクリックするだけです。</div>
-          <div class="code" style="margin-top:8px">http://filie</div>
+          <div class="code" style="margin-top:8px">http://filie:8000</div>
         </div>
       </li>
     </ul>
@@ -534,7 +534,7 @@
         <div class="mac-dialog-body">
           インストール完了！<br>
           ブラウザで開く URL:<br>
-          <code style="color:var(--accent);font-size:16px;font-weight:700">http://filie</code><br><br>
+          <code style="color:var(--accent);font-size:16px;font-weight:700">http://filie:8000</code><br><br>
           このURLをお気に入りに登録してください。
         </div>
         <div class="mac-dialog-btns">

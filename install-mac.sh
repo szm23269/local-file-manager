@@ -73,9 +73,9 @@ echo "📦 依存パッケージをインストール中..."
 "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt" -q
 echo -e "${GREEN}✅ パッケージのインストール完了${NC}"
 
-# ── URL 設定: http://filie で開けるようにする ───────────
+# ── URL 設定: http://filie:8000 で開けるようにする ─────────
 echo ""
-echo "🌐 http://filie のアドレス設定中... (管理者パスワードが必要です)"
+echo "🌐 ホスト名 filie を設定中... (管理者パスワードが必要です)"
 
 # /etc/hosts に追加（重複チェックあり）
 if ! grep -q "127.0.0.1 filie" /etc/hosts 2>/dev/null; then
@@ -84,40 +84,7 @@ if ! grep -q "127.0.0.1 filie" /etc/hosts 2>/dev/null; then
 else
   echo "  → /etc/hosts 登録済み"
 fi
-
-# pfctl で 80 → 8000 ポートリダイレクト設定
-sudo tee /etc/pf.anchors/filie > /dev/null <<'EOF'
-rdr pass on lo0 proto tcp from any to 127.0.0.1 port 80 -> 127.0.0.1 port 8000
-EOF
-
-sudo pfctl -a filie -f /etc/pf.anchors/filie 2>/dev/null || true
-sudo pfctl -e 2>/dev/null || true
-
-# 再起動後も有効になるよう LaunchDaemon を登録
-sudo tee /Library/LaunchDaemons/com.filie.portforward.plist > /dev/null <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.filie.portforward</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/bin/sh</string>
-        <string>-c</string>
-        <string>/sbin/pfctl -a filie -f /etc/pf.anchors/filie 2>/dev/null; /sbin/pfctl -e 2>/dev/null; true</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>StandardErrorPath</key>
-    <string>/dev/null</string>
-    <key>StandardOutPath</key>
-    <string>/dev/null</string>
-</dict>
-</plist>
-PLIST
-sudo launchctl load /Library/LaunchDaemons/com.filie.portforward.plist 2>/dev/null || true
-echo -e "${GREEN}✅ http://filie でアクセスできるようになりました${NC}"
+echo -e "${GREEN}✅ http://filie:8000 でアクセスできるようになりました${NC}"
 
 # ── ターミナル用起動スクリプト ───────────────────────────
 cat > "$LAUNCH_SCRIPT" << 'EOF'
@@ -126,7 +93,7 @@ INSTALL_DIR="$HOME/.local/share/filie"
 cd "$INSTALL_DIR"
 "$INSTALL_DIR/venv/bin/python" server.py &
 sleep 1.5
-open http://filie
+open http://filie:8000
 wait
 EOF
 chmod +x "$LAUNCH_SCRIPT"
@@ -140,10 +107,10 @@ cd "\$INSTALL_DIR"
 "\$INSTALL_DIR/venv/bin/python" server.py &
 PID=\$!
 sleep 1.5
-open http://filie
+open http://filie:8000
 echo ""
 echo "Filie が起動しました"
-echo "ブラウザで開く: http://filie"
+echo "ブラウザで開く: http://filie:8000"
 echo "このウィンドウを閉じるとサーバーが停止します。"
 wait \$PID
 EOF
@@ -168,7 +135,7 @@ echo "  ① デスクトップの「Filie.command」をダブルクリック"
 echo "  ② ターミナルで: filie"
 echo ""
 echo "ブラウザで開くURL (お気に入りに登録してください):"
-echo -e "  ${GREEN}→ http://filie${NC}"
+echo -e "  ${GREEN}→ http://filie:8000${NC}"
 echo ""
 echo "アンインストール:"
 echo "  rm -rf $INSTALL_DIR $LAUNCH_SCRIPT \"$COMMAND_FILE\""
