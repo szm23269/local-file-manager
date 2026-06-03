@@ -58,22 +58,11 @@ echo ""
 echo "📁 インストール先: $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR" "$BIN_DIR"
 
-# curl 経由 (BASH_SOURCE が空 or /dev/stdin) かローカル実行かを判定
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-/dev/null}")" 2>/dev/null && pwd || echo "")"
 BASE_URL="https://raw.githubusercontent.com/szm23269/local-file-manager/main"
-
-if [[ -f "$SCRIPT_DIR/server.py" ]]; then
-  # ローカルの ZIP から実行している場合
-  cp "$SCRIPT_DIR/server.py"        "$INSTALL_DIR/"
-  cp "$SCRIPT_DIR/index.html"       "$INSTALL_DIR/"
-  cp "$SCRIPT_DIR/requirements.txt" "$INSTALL_DIR/"
-else
-  # curl 経由で実行している場合 — GitHub から直接ダウンロード
-  echo "📥 アプリファイルをダウンロード中..."
-  curl -fsSL "$BASE_URL/server.py"        -o "$INSTALL_DIR/server.py"
-  curl -fsSL "$BASE_URL/index.html"       -o "$INSTALL_DIR/index.html"
-  curl -fsSL "$BASE_URL/requirements.txt" -o "$INSTALL_DIR/requirements.txt"
-fi
+echo "📥 アプリファイルをダウンロード中..."
+curl -fsSL "$BASE_URL/server.py"        -o "$INSTALL_DIR/server.py"        || { echo "❌ server.py のダウンロードに失敗しました"; exit 1; }
+curl -fsSL "$BASE_URL/index.html"       -o "$INSTALL_DIR/index.html"       || { echo "❌ index.html のダウンロードに失敗しました"; exit 1; }
+curl -fsSL "$BASE_URL/requirements.txt" -o "$INSTALL_DIR/requirements.txt" || { echo "❌ requirements.txt のダウンロードに失敗しました"; exit 1; }
 
 # ── 仮想環境と依存パッケージ ────────────────────────────
 echo ""
