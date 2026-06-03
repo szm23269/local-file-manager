@@ -451,32 +451,29 @@
         <div class="step-num">1</div>
         <div class="step-body">
           <div class="step-title">ZIP をダウンロードして解凍</div>
-          <div class="step-desc">以下のボタンからダウンロードし、ZIP をダブルクリックで解凍します。</div>
+          <div class="step-desc">ダウンロードした ZIP をダブルクリックで解凍します。</div>
           <a href="https://github.com/szm23269/local-file-manager/archive/refs/heads/main.zip" class="btn btn-mac" style="margin-top:8px;display:inline-flex">⬇ macOS 版をダウンロード</a>
         </div>
       </li>
       <li>
         <div class="step-num">2</div>
         <div class="step-body">
-          <div class="step-title">インストーラーを実行</div>
-          <div class="step-desc">解凍されたフォルダ内でターミナルを開き、以下を実行します。<strong>Python がなければ自動でインストールされます。</strong></div>
-          <div class="code">chmod +x install-mac.sh
-./install-mac.sh</div>
+          <div class="step-title">「Filie Installer」をダブルクリック</div>
+          <div class="step-desc">解凍フォルダ内の <strong style="color:var(--text-bright)">Filie Installer.app</strong> をダブルクリックします。インストーラーが起動し、ダイアログに沿って進めるだけで完了します。Python も自動でインストールされます。</div>
         </div>
       </li>
       <li>
         <div class="step-num">3</div>
         <div class="step-body">
-          <div class="step-title">起動 &amp; ブックマーク</div>
-          <div class="step-desc">「インストール完了！」と表示されたら、デスクトップの「<strong style="color:var(--text-bright)">Filie.command</strong>」をダブルクリックします。ブラウザが開いたら以下の URL をお気に入りに登録してください。</div>
+          <div class="step-title">「Filie を起動」をクリック &amp; ブックマーク</div>
+          <div class="step-desc">完了ダイアログの「Filie を起動」をクリックするとブラウザが開きます。以下の URL をお気に入りに登録してください。</div>
           <div class="code">http://filie</div>
         </div>
       </li>
     </ul>
     <div class="note">
       ⚠️ <strong>「開発元が未確認」の警告が出た場合:</strong><br>
-      <code style="color:var(--green)">install-mac.sh</code> または <code style="color:var(--green)">Filie.command</code> を右クリック →「開く」→「開く」をクリックしてください。<br>
-      システム環境設定 →「セキュリティとプライバシー」→「このまま開く」でも許可できます。
+      <code style="color:var(--green)">Filie Installer.app</code> を右クリック →「開く」→「開く」をクリックしてください。
     </div>
   </div>
 
@@ -494,8 +491,8 @@
       <li>
         <div class="step-num">2</div>
         <div class="step-body">
-          <div class="step-title">install-windows.bat を実行</div>
-          <div class="step-desc">フォルダ内の <strong style="color:var(--text-bright)">install-windows.bat</strong> をダブルクリックします。<strong>Python がなければ自動でインストールされます。</strong>黒いコマンドプロンプト画面が開き、すべて自動でセットアップが進みます。</div>
+          <div class="step-title">「Filie-Setup.bat」をダブルクリック</div>
+          <div class="step-desc">フォルダ内の <strong style="color:var(--text-bright)">Filie-Setup.bat</strong> をダブルクリックします。UAC 確認の後、インストーラーウィンドウが開きます。「<strong>Install</strong>」ボタンを押すだけで Python の準備からすべて自動で進みます。</div>
           <div class="note" style="margin-top:8px;">
             ⚠️ <strong>「Windows によって PC が保護されました」</strong>と表示された場合:<br>
             「詳細情報」をクリック → 「実行」ボタンをクリック
@@ -505,8 +502,8 @@
       <li>
         <div class="step-num">3</div>
         <div class="step-body">
-          <div class="step-title">起動 &amp; ブックマーク</div>
-          <div class="step-desc">「Installation complete!」と表示されたらセットアップ完了です。デスクトップの「<strong style="color:var(--text-bright)">Filie</strong>」ショートカットをダブルクリックするとブラウザが自動で開きます。以下の URL をお気に入りに登録してください。</div>
+          <div class="step-title">「Launch Filie」をクリック &amp; ブックマーク</div>
+          <div class="step-desc">インストーラーの「<strong>Launch Filie</strong>」ボタンをクリックするとブラウザが開きます。以下の URL をお気に入りに登録してください。</div>
           <div class="code">http://filie</div>
           <div class="note" style="margin-top:8px;">接続できない場合のフォールバック URL: <code style="color:var(--green)">http://127.0.0.1:8000</code></div>
         </div>
