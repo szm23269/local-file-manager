@@ -346,6 +346,7 @@
   <div class="nav-links">
     <a href="#features">機能</a>
     <a href="#install">インストール</a>
+    <a href="#uninstall">アンインストール</a>
     <a href="#usage">使い方</a>
     <a href="#faq">FAQ</a>
     <a href="https://github.com/szm23269/local-file-manager" target="_blank">GitHub</a>
@@ -514,6 +515,75 @@
   </div>
 </section>
 
+<!-- UNINSTALL -->
+<section id="uninstall" style="background:var(--bg2)">
+  <div class="section-label">Uninstall</div>
+  <h2 class="section-title">アンインストール方法</h2>
+  <p class="section-sub">アンインストーラーを実行するだけで、すべての設定が自動的に削除されます。</p>
+
+  <div class="install-tabs">
+    <button class="install-tab active" onclick="switchUnTab('mac')">🍎 macOS</button>
+    <button class="install-tab" onclick="switchUnTab('win')">🪟 Windows</button>
+  </div>
+
+  <div class="install-panel active" id="unpanel-mac" style="max-width:680px;margin:0 auto">
+    <ul class="steps">
+      <li>
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">アンインストーラーを実行</div>
+          <div class="step-desc">ダウンロードした ZIP を解凍したフォルダ内でターミナルを開き、以下を実行します。</div>
+          <div class="code">chmod +x uninstall-mac.sh
+./uninstall-mac.sh</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">確認して続行</div>
+          <div class="step-desc">削除される内容が表示されます。<kbd class="kbd">y</kbd> を入力して Enter を押すと削除が始まります。管理者パスワードの入力が必要です。</div>
+        </div>
+      </li>
+    </ul>
+    <div class="note">
+      以下のものがすべて削除されます：<br>
+      ・アプリ本体 (<code style="color:var(--green)">~/.local/share/filie</code>)<br>
+      ・起動スクリプト (<code style="color:var(--green)">~/.local/bin/filie</code>)<br>
+      ・デスクトップの Filie.command<br>
+      ・ポートリダイレクト設定 (pfctl LaunchDaemon)<br>
+      ・<code style="color:var(--green)">/etc/hosts</code> の filie エントリ<br><br>
+      ⚠️ <strong>Python 自体は削除されません。</strong>Python を削除する場合は別途対応してください。
+    </div>
+  </div>
+
+  <div class="install-panel" id="unpanel-win" style="max-width:680px;margin:0 auto">
+    <ul class="steps">
+      <li>
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">アンインストーラーを実行</div>
+          <div class="step-desc">ダウンロードした ZIP を解凍したフォルダ内の <strong style="color:var(--text-bright)">uninstall-windows.bat</strong> をダブルクリックします。管理者として実行されます。</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">確認して続行</div>
+          <div class="step-desc">削除される内容が表示されます。<kbd class="kbd">y</kbd> を入力して Enter を押すと削除が始まります。</div>
+        </div>
+      </li>
+    </ul>
+    <div class="note">
+      以下のものがすべて削除されます：<br>
+      ・アプリ本体 (<code style="color:var(--green)">%LOCALAPPDATA%\Filie</code>)<br>
+      ・デスクトップのショートカット<br>
+      ・ポートリダイレクト設定 (netsh portproxy)<br>
+      ・hosts ファイルの filie エントリ<br><br>
+      ⚠️ <strong>Python 自体は削除されません。</strong>削除する場合は「設定」→「アプリ」から行ってください。
+    </div>
+  </div>
+</section>
+
 <!-- USAGE -->
 <section id="usage">
   <div class="section-label">Usage</div>
@@ -599,8 +669,10 @@
         アンインストール方法は？ <span class="arrow">▼</span>
       </button>
       <div class="faq-a">
-        macOS: <code style="color:var(--green)">rm -rf ~/.local/share/filie ~/.local/bin/filie ~/Desktop/Filie.command</code><br><br>
-        Windows: <code style="color:var(--green)">%LOCALAPPDATA%\Filie</code> フォルダとデスクトップのショートカットを削除してください。
+        ZIP に同梱のアンインストーラーを実行してください。<br><br>
+        <strong>macOS:</strong> <code style="color:var(--green)">./uninstall-mac.sh</code><br>
+        <strong>Windows:</strong> <code style="color:var(--green)">uninstall-windows.bat</code> をダブルクリック<br><br>
+        詳細は <a href="#uninstall" style="color:var(--accent)">アンインストール</a> セクションをご覧ください。
       </div>
     </div>
     <div class="faq-item">
@@ -664,9 +736,16 @@
 
 <script>
   function switchTab(os) {
-    document.querySelectorAll('.install-tab').forEach((t,i) => t.classList.toggle('active', (os==='mac'&&i===0)||(os==='win'&&i===1)));
+    const tabs = document.querySelectorAll('#install .install-tab');
+    tabs.forEach((t,i) => t.classList.toggle('active', (os==='mac'&&i===0)||(os==='win'&&i===1)));
     document.getElementById('panel-mac').classList.toggle('active', os==='mac');
     document.getElementById('panel-win').classList.toggle('active', os==='win');
+  }
+  function switchUnTab(os) {
+    const tabs = document.querySelectorAll('#uninstall .install-tab');
+    tabs.forEach((t,i) => t.classList.toggle('active', (os==='mac'&&i===0)||(os==='win'&&i===1)));
+    document.getElementById('unpanel-mac').classList.toggle('active', os==='mac');
+    document.getElementById('unpanel-win').classList.toggle('active', os==='win');
   }
   function toggleFaq(btn) {
     const ans = btn.nextElementSibling;
@@ -674,7 +753,7 @@
     btn.classList.toggle('open', open);
   }
   // OS 自動判定
-  if (navigator.userAgent.includes('Win')) switchTab('win');
+  if (navigator.userAgent.includes('Win')) { switchTab('win'); switchUnTab('win'); }
 </script>
 </body>
 </html>
