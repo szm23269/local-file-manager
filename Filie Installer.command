@@ -1,0 +1,153 @@
+#!/bin/bash
+# Filie Installer — macOS
+# 右クリック →「開く」→「開く」で実行してください
+
+REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+INSTALL_DIR="$HOME/.local/share/filie"
+BIN_DIR="$HOME/.local/bin"
+DESKTOP="$HOME/Desktop"
+PYTHON_VER="3.12.7"
+
+# ── AppleScript helpers ───────────────────────────────
+dlg_yn() {
+  osascript -e "display dialog \"$1\" with title \"Filie インストーラー\" with icon note buttons {\"キャンセル\", \"インストール\"} default button \"インストール\""
+}
+dlg_ok() {
+  osascript -e "display dialog \"$1\" with title \"Filie インストーラー\" with icon note buttons {\"OK\"} default button \"OK\""
+}
+dlg_yn2() {
+  osascript -e "display dialog \"$1\" with title \"Filie インストーラー\" with icon note buttons {\"キャンセル\", \"続行\"} default button \"続行\""
+}
+dlg_err() {
+  osascript -e "display dialog \"$1\" with title \"Filie インストーラー\" with icon stop buttons {\"OK\"} default button \"OK\""
+  exit 1
+}
+notify() {
+  osascript -e "display notification \"$1\" with title \"Filie インストーラー\""
+}
+
+# ── Welcome ───────────────────────────────────────────
+result=$(dlg_yn "Filie へようこそ！
+
+ブラウザで動くローカルファイルマネージャーです。
+
+インストール先: ~/.local/share/filie
+URL: http://filie
+
+「インストール」をクリックして開始します。") || exit 0
+[[ "$result" != *"インストール"* ]] && exit 0
+
+# ── App files check ───────────────────────────────────
+if [[ ! -f "$REPO_DIR/server.py" ]]; then
+  dlg_err "アプリファイルが見つかりません。\nZIP を解凍したフォルダ内の「Filie Installer.command」を実行してください。"
+fi
+
+# ── Python ───────────────────────────────────────────
+notify "Python を確認中..."
+if ! command -v python3 &>/dev/null; then
+  result=$(dlg_yn2 "Python 3 が見つかりません。
+
+インストーラーが自動でインストールします（約50MB）。
+数分かかる場合があります。続行しますか？") || exit 0
+  [[ "$result" != *"続行"* ]] && exit 0
+  notify "Python をインストール中..."
+  if command -v brew &>/dev/null; then
+    brew install python3 >/dev/null 2>&1
+    hash -r 2>/dev/null || true
+  else
+    PKG="python-${PYTHON_VER}-macos11.pkg"
+    curl -L --progress-bar -o "/tmp/${PKG}" \
+      "https://www.python.org/ftp/python/${PYTHON_VER}/${PKG}" 2>/dev/null
+    osascript -e "do shell script \"installer -pkg '/tmp/${PKG}' -target /\" with administrator privileges" 2>/dev/null
+    rm -f "/tmp/${PKG}"
+    hash -r 2>/dev/null || true
+  fi
+  command -v python3 &>/dev/null || \
+    dlg_err "Python のインストールに失敗しました。\nhttps://www.python.org/downloads/ から手動でインストールしてください。"
+fi
+
+# ── Install files ─────────────────────────────────────
+notify "アプリをインストール中..."
+mkdir -p "$INSTALL_DIR" "$BIN_DIR" || dlg_err "フォルダの作成に失敗しました。"
+cp "$REPO_DIR/server.py"        "$INSTALL_DIR/" || dlg_err "ファイルのコピーに失敗しました。"
+cp "$REPO_DIR/index.html"       "$INSTALL_DIR/"
+cp "$REPO_DIR/requirements.txt" "$INSTALL_DIR/"
+
+# ── Venv + packages ───────────────────────────────────
+notify "Python 環境をセットアップ中..."
+python3 -m venv "$INSTALL_DIR/venv" >/dev/null 2>&1 || dlg_err "仮想環境の作成に失敗しました。"
+"$INSTALL_DIR/venv/bin/pip" install --upgrade pip -q >/dev/null 2>&1
+"$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt" -q >/dev/null 2>&1 \
+  || dlg_err "パッケージのインストールに失敗しました。"
+
+# ── Shortcuts ─────────────────────────────────────────
+notify "起動ショートカットを作成中..."
+cat > "$DESKTOP/Filie.command" << 'EOF'
+#!/bin/bash
+INSTALL_DIR="$HOME/.local/share/filie"
+cd "$INSTALL_DIR"
+"$INSTALL_DIR/venv/bin/python" server.py &
+sleep 1.5
+open http://filie
+wait
+EOF
+chmod +x "$DESKTOP/Filie.command"
+cat > "$BIN_DIR/filie" << 'EOF'
+#!/bin/bash
+INSTALL_DIR="$HOME/.local/share/filie"
+cd "$INSTALL_DIR"
+"$INSTALL_DIR/venv/bin/python" server.py &
+sleep 1.5
+open http://filie
+wait
+EOF
+chmod +x "$BIN_DIR/filie"
+
+# ── URL: http://filie ─────────────────────────────────
+notify "http://filie を設定中..."
+cat > /tmp/filie_pf.conf << 'PFEOF'
+rdr pass on lo0 proto tcp from any to 127.0.0.1 port 80 -> 127.0.0.1 port 8000
+PFEOF
+cat > /tmp/filie_portforward.plist << 'PLISTEOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>com.filie.portforward</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string><string>-c</string>
+        <string>/sbin/pfctl -a filie -f /etc/pf.anchors/filie 2>/dev/null; /sbin/pfctl -e 2>/dev/null; true</string>
+    </array>
+    <key>RunAtLoad</key><true/>
+    <key>StandardErrorPath</key><string>/dev/null</string>
+    <key>StandardOutPath</key><string>/dev/null</string>
+</dict>
+</plist>
+PLISTEOF
+cat > /tmp/filie_admin.sh << 'ADMINEOF'
+#!/bin/bash
+grep -q "127.0.0.1 filie" /etc/hosts 2>/dev/null || echo "127.0.0.1    filie" >> /etc/hosts
+mkdir -p /etc/pf.anchors
+cp /tmp/filie_pf.conf /etc/pf.anchors/filie
+pfctl -a filie -f /etc/pf.anchors/filie 2>/dev/null || true
+pfctl -e 2>/dev/null || true
+cp /tmp/filie_portforward.plist /Library/LaunchDaemons/com.filie.portforward.plist
+launchctl load /Library/LaunchDaemons/com.filie.portforward.plist 2>/dev/null || true
+rm -f /tmp/filie_pf.conf /tmp/filie_portforward.plist /tmp/filie_admin.sh
+ADMINEOF
+chmod +x /tmp/filie_admin.sh
+osascript -e 'do shell script "/tmp/filie_admin.sh" with administrator privileges' 2>/dev/null || true
+
+# ── Done ─────────────────────────────────────────────
+result=$(osascript -e 'display dialog "✅ インストール完了！
+
+ブラウザで開くURL:
+http://filie
+
+このURLをお気に入りに登録してください。
+
+「Filie を起動」をクリックするとブラウザが開きます。" with title "Filie インストーラー" with icon note buttons {"あとで", "Filie を起動"} default button "Filie を起動"')
+if [[ "$result" == *"Filie を起動"* ]]; then
+  open "$DESKTOP/Filie.command"
+fi

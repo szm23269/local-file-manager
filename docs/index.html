@@ -494,12 +494,23 @@
       <li>
         <div class="step-num">2</div>
         <div class="step-body">
-          <div class="step-title">「Filie Installer」をダブルクリック</div>
-          <div class="step-desc">解凍フォルダ内の <strong style="color:var(--text-bright)">Filie Installer.app</strong> をダブルクリックします。インストーラーが起動し、ダイアログに沿って進めるだけで完了します。Python も自動でインストールされます。</div>
+          <div class="step-title">「Filie Installer.command」を右クリック →「開く」</div>
+          <div class="step-desc">解凍フォルダ内の <strong style="color:var(--text-bright)">Filie Installer.command</strong> を<strong>右クリック</strong>（または Control+クリック）して「<strong>開く</strong>」を選びます。確認ダイアログが出たら再度「<strong>開く</strong>」をクリックします。</div>
+          <div class="note" style="margin-top:8px;">
+            ⚠️ <strong>ダブルクリックではなく必ず右クリック →「開く」</strong>を使ってください。<br>
+            インターネットからダウンロードしたファイルを初回起動する際の macOS の確認です。2回目以降はダブルクリックで起動できます。
+          </div>
         </div>
       </li>
       <li>
         <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">ダイアログに沿って進める</div>
+          <div class="step-desc">インストーラーのダイアログが順に表示されます。Python がなければ自動でインストールされます。途中で管理者パスワードの入力が1回必要です。</div>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">4</div>
         <div class="step-body">
           <div class="step-title">「Filie を起動」をクリック &amp; ブックマーク</div>
           <div class="step-desc">完了ダイアログの「Filie を起動」をクリックするとブラウザが開きます。以下の URL をお気に入りに登録してください。</div>
@@ -507,10 +518,6 @@
         </div>
       </li>
     </ul>
-    <div class="note">
-      ⚠️ <strong>「開発元が未確認」の警告が出た場合:</strong><br>
-      <code style="color:var(--green)">Filie Installer.app</code> を右クリック →「開く」→「開く」をクリックしてください。
-    </div>
     <!-- macOS installer dialog mockup -->
     <div class="mac-dialog" style="margin-top:32px">
       <div class="mac-dialog-icon">ℹ️</div>
@@ -777,6 +784,18 @@
       </button>
       <div class="faq-a">
         インストーラーが OS のホストファイル (<code style="color:var(--green)">/etc/hosts</code>) に <code style="color:var(--green)">127.0.0.1 filie</code> を自動登録します。これにより「filie」というホスト名がお使いの PC 上のアドレスに解決されます。また、ポート 80 → 8000 のリダイレクトも設定されるため、ポート番号なしでアクセスできます。すべてお使いの PC 内だけで完結する設定です。
+      </div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        macOS で「開発元を検証できません」と表示される <span class="arrow">▼</span>
+      </button>
+      <div class="faq-a">
+        macOS Gatekeeper の警告です。インターネットからダウンロードしたファイルは初回起動時にこの確認が出ます。<br><br>
+        <strong>対処（推奨）:</strong> ファイルを<strong>右クリック</strong>（または Control+クリック）→「<strong>開く</strong>」→ 確認ダイアログで「<strong>開く</strong>」をクリック<br><br>
+        「ゴミ箱に入れる」しか表示されない場合:<br>
+        「システム設定」→「プライバシーとセキュリティ」→ 下部の「<strong>このまま開く</strong>」ボタンをクリック<br><br>
+        Filie のコードはすべて <a href="https://github.com/szm23269/local-file-manager" style="color:var(--accent)" target="_blank">GitHub 上で公開</a>されており、安全です。
       </div>
     </div>
     <div class="faq-item">
