@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Filie — ローカルファイルマネージャー</title>
-<meta name="description" content="ブラウザで動く高機能ローカルファイルマネージャー。Windows・macOS 対応。インストール不要で手軽に使えます。">
+<meta name="description" content="ブラウザで動く高機能ローカルファイルマネージャー。Windows・macOS 対応。ダブルクリックでインストール、http://filie でアクセス。">
 <style>
   :root {
     --accent: #4f8ef7;
@@ -331,6 +331,37 @@
   }
   footer a { color: var(--accent); text-decoration: none; }
 
+  /* Installer mockup */
+  .installer-mockup { max-width: 440px; margin: 32px auto 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 16px 48px rgba(0,0,0,.5); }
+  .mock-titlebar { background: #1a1a2e; display: flex; align-items: center; padding: 10px 14px; gap: 6px; border-bottom: 1px solid var(--border); }
+  .mock-titlebar span { font-size: 13px; color: var(--text-muted); flex: 1; text-align: center; }
+  .mock-body { background: var(--bg2); padding: 0; }
+  .mock-header { background: var(--bg); padding: 16px 24px 14px; border-bottom: 1px solid var(--border); }
+  .mock-appname { font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .mock-appsub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .mock-content { padding: 20px 24px; }
+  .mock-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .mock-path { font-family: monospace; font-size: 11px; color: var(--green); background: var(--bg); padding: 6px 10px; border-radius: 6px; margin-bottom: 16px; }
+  .mock-progress-wrap { background: var(--bg); border-radius: 4px; height: 10px; overflow: hidden; margin-bottom: 8px; }
+  .mock-progress-bar { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), #7c4dff); }
+  .mock-status { font-size: 11px; color: var(--text-muted); margin-bottom: 20px; }
+  .mock-btn-row { display: flex; justify-content: flex-end; gap: 8px; }
+  .mock-btn { padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 700; border: none; cursor: default; }
+  .mock-btn-primary { background: var(--accent); color: #fff; }
+  .mock-btn-success { background: var(--green); color: var(--bg); }
+  .mock-url-box { background: var(--bg); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+  .mock-url-caption { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .mock-url-val { font-family: monospace; font-size: 20px; font-weight: 800; color: var(--accent); }
+  /* macOS dialog mockup */
+  .mac-dialog { max-width: 380px; margin: 32px auto 0; background: rgba(255,255,255,.08); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 28px 28px 20px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  .mac-dialog-icon { font-size: 40px; text-align: center; margin-bottom: 12px; }
+  .mac-dialog-title { font-size: 15px; font-weight: 700; color: var(--text-bright); text-align: center; margin-bottom: 10px; }
+  .mac-dialog-body { font-size: 13px; color: var(--text-muted); text-align: center; line-height: 1.6; margin-bottom: 20px; }
+  .mac-dialog-btns { display: flex; gap: 10px; justify-content: center; }
+  .mac-btn { padding: 7px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: default; }
+  .mac-btn-cancel { background: rgba(255,255,255,.12); color: var(--text); }
+  .mac-btn-primary { background: var(--accent); color: #fff; }
+
   @media (max-width: 600px) {
     nav { padding: 0 16px; }
     .nav-links { display: none; }
@@ -357,7 +388,7 @@
 <section class="hero">
   <div class="hero-badge">🆓 無料 · オープンソース · ローカル完結</div>
   <h1>ブラウザで動く<br><span>高機能ファイルマネージャー</span></h1>
-  <p>Directory Opus にインスパイアされたデュアルペイン型ファイルマネージャー。インストール不要で Windows・macOS 両対応。</p>
+  <p>Directory Opus にインスパイアされたデュアルペイン型ファイルマネージャー。ダブルクリックでインストール、Windows・macOS 両対応。</p>
   <div class="hero-btns">
     <a href="#install" class="btn btn-primary">⬇ ダウンロード</a>
     <a href="https://github.com/szm23269/local-file-manager" class="btn btn-secondary" target="_blank">⭐ GitHub</a>
@@ -369,7 +400,7 @@
         <span class="dot dot-r"></span>
         <span class="dot dot-y"></span>
         <span class="dot dot-g"></span>
-        <div class="screenshot-url">127.0.0.1:8000</div>
+        <div class="screenshot-url">filie</div>
       </div>
       <div class="screenshot-body">
         <div class="screenshot-placeholder">📁</div>
@@ -429,7 +460,12 @@
     <div class="feature-card">
       <div class="feature-icon">🌐</div>
       <div class="feature-title">ブラウザで動作</div>
-      <div class="feature-desc">ネイティブアプリ不要。お使いのブラウザがそのまま UI になります。</div>
+      <div class="feature-desc">ネイティブアプリ不要。お使いのブラウザがそのまま UI になります。<code style="font-size:12px;color:var(--green)">http://filie</code> をブックマークするだけ。</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🖱</div>
+      <div class="feature-title">ワンクリックインストール</div>
+      <div class="feature-desc">ダブルクリックするだけで完了するGUI インストーラー付き。Python も含めすべて自動セットアップ。</div>
     </div>
   </div>
 </section>
@@ -475,6 +511,21 @@
       ⚠️ <strong>「開発元が未確認」の警告が出た場合:</strong><br>
       <code style="color:var(--green)">Filie Installer.app</code> を右クリック →「開く」→「開く」をクリックしてください。
     </div>
+    <!-- macOS installer dialog mockup -->
+    <div class="mac-dialog" style="margin-top:32px">
+      <div class="mac-dialog-icon">ℹ️</div>
+      <div class="mac-dialog-title">Filie インストーラー</div>
+      <div class="mac-dialog-body">
+        Filie へようこそ！<br>
+        インストール先: <code style="color:var(--green)">~/.local/share/filie</code><br>
+        URL: <code style="color:var(--accent)">http://filie</code><br><br>
+        「インストール」をクリックして開始します。
+      </div>
+      <div class="mac-dialog-btns">
+        <div class="mac-btn mac-btn-cancel">キャンセル</div>
+        <div class="mac-btn mac-btn-primary">インストール</div>
+      </div>
+    </div>
   </div>
 
   <div class="install-panel" id="panel-win">
@@ -509,6 +560,32 @@
         </div>
       </li>
     </ul>
+    <!-- Windows installer GUI mockup -->
+    <div class="installer-mockup" style="margin-top:32px">
+      <div class="mock-titlebar">
+        <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+        <span>Filie Installer</span>
+      </div>
+      <div class="mock-body">
+        <div class="mock-header">
+          <div class="mock-appname">Filie</div>
+          <div class="mock-appsub">Local File Manager &nbsp;—&nbsp; Installer</div>
+        </div>
+        <div class="mock-content">
+          <div class="mock-label">Install location:</div>
+          <div class="mock-path">C:\Users\you\AppData\Local\Filie</div>
+          <div class="mock-progress-wrap"><div class="mock-progress-bar" style="width:72%"></div></div>
+          <div class="mock-status">Installing packages... (may take a minute)</div>
+          <div class="mock-url-box" style="display:none" id="mock-done">
+            <div class="mock-url-caption">Open in your browser and bookmark:</div>
+            <div class="mock-url-val">http://filie</div>
+          </div>
+          <div class="mock-btn-row">
+            <div class="mock-btn mock-btn-primary">Installing...</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -714,12 +791,23 @@
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        Windows インストール中にエラーが出る場合は？ <span class="arrow">▼</span>
+        インストール後、毎回どうやって起動しますか？ <span class="arrow">▼</span>
       </button>
       <div class="faq-a">
-        よくある原因:<br><br>
-        ① <strong>Python が PATH に登録されていない</strong> — Python のインストール画面で「Add Python to PATH」にチェックを入れて再インストールしてください。<br><br>
-        ② <strong>ZIP を解凍せずに直接実行している</strong> — ZIP ファイルを右クリック →「すべて展開」で解凍し、できた <code style="color:var(--green)">local-file-manager-main</code> フォルダの中の bat ファイルを実行してください。
+        デスクトップに作成されたショートカットをダブルクリックしてください。<br><br>
+        <strong>macOS:</strong> デスクトップの <code style="color:var(--green)">Filie.command</code> をダブルクリック<br>
+        <strong>Windows:</strong> デスクトップの <code style="color:var(--green)">Filie</code> ショートカットをダブルクリック<br><br>
+        ブラウザが起動して <code style="color:var(--accent)">http://filie</code> が自動で開きます。お気に入りに登録しておくと便利です。
+      </div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Filie を終了するには？ <span class="arrow">▼</span>
+      </button>
+      <div class="faq-a">
+        <strong>macOS:</strong> デスクトップの Filie.command を開いたターミナルウィンドウを閉じてください。<br><br>
+        <strong>Windows:</strong> タスクバーを右クリック →「タスク マネージャー」→ Python プロセスを終了してください。<br><br>
+        ブラウザのタブを閉じるだけではサーバーは停止しません。
       </div>
     </div>
   </div>
