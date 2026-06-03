@@ -482,44 +482,61 @@
   </div>
 
   <div class="install-panel active" id="panel-mac">
-    <ul class="steps">
-      <li>
-        <div class="step-num">1</div>
-        <div class="step-body">
-          <div class="step-title">ZIP をダウンロードして解凍</div>
-          <div class="step-desc">ダウンロードした ZIP をダブルクリックで解凍します。</div>
-          <a href="https://github.com/szm23269/local-file-manager/archive/refs/heads/main.zip" class="btn btn-mac" style="margin-top:8px;display:inline-flex">⬇ macOS 版をダウンロード</a>
-        </div>
-      </li>
-      <li>
-        <div class="step-num">2</div>
-        <div class="step-body">
-          <div class="step-title">「Filie Installer.command」を右クリック →「開く」</div>
-          <div class="step-desc">解凍フォルダ内の <strong style="color:var(--text-bright)">Filie Installer.command</strong> を<strong>右クリック</strong>（または Control+クリック）して「<strong>開く</strong>」を選びます。確認ダイアログが出たら再度「<strong>開く</strong>」をクリックします。</div>
-          <div class="note" style="margin-top:8px;">
-            ⚠️ <strong>ダブルクリックではなく必ず右クリック →「開く」</strong>を使ってください。<br>
-            インターネットからダウンロードしたファイルを初回起動する際の macOS の確認です。2回目以降はダブルクリックで起動できます。
-          </div>
-        </div>
-      </li>
-      <li>
-        <div class="step-num">3</div>
-        <div class="step-body">
-          <div class="step-title">ダイアログに沿って進める</div>
-          <div class="step-desc">インストーラーのダイアログが順に表示されます。Python がなければ自動でインストールされます。途中で管理者パスワードの入力が1回必要です。</div>
-        </div>
-      </li>
-      <li>
-        <div class="step-num">4</div>
-        <div class="step-body">
-          <div class="step-title">「Filie を起動」をクリック &amp; ブックマーク</div>
-          <div class="step-desc">完了ダイアログの「Filie を起動」をクリックするとブラウザが開きます。以下の URL をお気に入りに登録してください。</div>
-          <div class="code">http://filie</div>
-        </div>
-      </li>
-    </ul>
+
+    <!-- Method A: Terminal (recommended) -->
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:100px">推奨</span>
+        <span style="font-size:15px;font-weight:700;color:var(--text-bright)">Terminal から1行でインストール</span>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Spotlight（<kbd class="kbd">⌘ Space</kbd>）で「Terminal」を検索して開き、以下をコピー&amp;ペーストして Enter を押してください。</p>
+      <div class="code">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/szm23269/local-file-manager/main/install-mac.sh)"</div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:10px">Python の確認・インストールからセットアップまですべて自動で行われます。</p>
+    </div>
+
+    <!-- Method B: GUI installer -->
+    <details style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <summary style="padding:16px 20px;cursor:pointer;font-size:14px;font-weight:600;color:var(--text);list-style:none;display:flex;justify-content:space-between;align-items:center">
+        GUI インストーラーを使う（Gatekeeper の許可が必要）
+        <span style="font-size:11px;color:var(--text-muted)">▼ 展開</span>
+      </summary>
+      <div style="padding:0 20px 20px">
+        <ul class="steps" style="margin-top:16px">
+          <li>
+            <div class="step-num" style="width:28px;height:28px;font-size:13px">1</div>
+            <div class="step-body">
+              <div class="step-title">ZIP をダウンロードして解凍</div>
+              <a href="https://github.com/szm23269/local-file-manager/archive/refs/heads/main.zip" class="btn btn-mac" style="margin-top:6px;display:inline-flex;padding:8px 18px;font-size:13px">⬇ ダウンロード</a>
+            </div>
+          </li>
+          <li>
+            <div class="step-num" style="width:28px;height:28px;font-size:13px">2</div>
+            <div class="step-body">
+              <div class="step-title">「Filie Installer.command」を試しに開く</div>
+              <div class="step-desc">ダブルクリックすると「開いていません」エラーが出ます。<strong>「完了」</strong>をクリックして閉じてください（「ゴミ箱に入れる」は押さない）。</div>
+            </div>
+          </li>
+          <li>
+            <div class="step-num" style="width:28px;height:28px;font-size:13px">3</div>
+            <div class="step-body">
+              <div class="step-title">システム設定 → プライバシーとセキュリティ</div>
+              <div class="step-desc">「セキュリティ」セクションに「Filie Installer.command はブロックされました」という表示と <strong>「このまま開く」</strong> ボタンが現れます。クリックしてパスワードを入力してください。</div>
+            </div>
+          </li>
+          <li>
+            <div class="step-num" style="width:28px;height:28px;font-size:13px">4</div>
+            <div class="step-body">
+              <div class="step-title">ダイアログに沿って進める → 完了</div>
+              <div class="step-desc">インストーラーのダイアログが順に表示されます。完了後にお気に入りに登録してください。</div>
+              <div class="code" style="margin-top:8px">http://filie</div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </details>
+
     <!-- macOS installer dialog mockup -->
-    <div class="mac-dialog" style="margin-top:32px">
+    <div class="mac-dialog" style="margin-top:24px">
       <div class="mac-dialog-icon">ℹ️</div>
       <div class="mac-dialog-title">Filie インストーラー</div>
       <div class="mac-dialog-body">
@@ -788,14 +805,22 @@
     </div>
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">
-        macOS で「開発元を検証できません」と表示される <span class="arrow">▼</span>
+        macOS で「開いていません」エラーが出る <span class="arrow">▼</span>
       </button>
       <div class="faq-a">
-        macOS Gatekeeper の警告です。インターネットからダウンロードしたファイルは初回起動時にこの確認が出ます。<br><br>
-        <strong>対処（推奨）:</strong> ファイルを<strong>右クリック</strong>（または Control+クリック）→「<strong>開く</strong>」→ 確認ダイアログで「<strong>開く</strong>」をクリック<br><br>
-        「ゴミ箱に入れる」しか表示されない場合:<br>
-        「システム設定」→「プライバシーとセキュリティ」→ 下部の「<strong>このまま開く</strong>」ボタンをクリック<br><br>
-        Filie のコードはすべて <a href="https://github.com/szm23269/local-file-manager" style="color:var(--accent)" target="_blank">GitHub 上で公開</a>されており、安全です。
+        macOS Gatekeeper が未署名のファイルをブロックしています。<strong>最も簡単な回避方法はTerminal の1行コマンド</strong>です。<br><br>
+
+        <strong>① Terminal コマンド（推奨）:</strong><br>
+        Spotlight で「Terminal」を開き、以下を実行:<br>
+        <code style="color:var(--green);display:block;margin:8px 0;word-break:break-all">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/szm23269/local-file-manager/main/install-mac.sh)"</code><br>
+
+        <strong>② GUI インストーラーを使いたい場合:</strong><br>
+        1. インストーラーをダブルクリック →「<strong>完了</strong>」をクリック（ゴミ箱には入れない）<br>
+        2. 「<strong>システム設定</strong>」→「<strong>プライバシーとセキュリティ</strong>」を開く<br>
+        3. 「セキュリティ」欄の「<strong>このまま開く</strong>」ボタンをクリック<br>
+        4. パスワードを入力 → 開く<br><br>
+
+        Filie のコードはすべて <a href="https://github.com/szm23269/local-file-manager" style="color:var(--accent)" target="_blank">GitHub 上で公開</a>されており安全です。
       </div>
     </div>
     <div class="faq-item">
