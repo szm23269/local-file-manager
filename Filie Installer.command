@@ -69,9 +69,17 @@ fi
 # ── Install files ─────────────────────────────────────
 notify "アプリをインストール中..."
 mkdir -p "$INSTALL_DIR" "$BIN_DIR" || dlg_err "フォルダの作成に失敗しました。"
-cp "$REPO_DIR/server.py"        "$INSTALL_DIR/" || dlg_err "ファイルのコピーに失敗しました。"
-cp "$REPO_DIR/index.html"       "$INSTALL_DIR/"
-cp "$REPO_DIR/requirements.txt" "$INSTALL_DIR/"
+BASE_URL="https://raw.githubusercontent.com/szm23269/local-file-manager/main"
+if [[ -f "$REPO_DIR/server.py" ]]; then
+  cp "$REPO_DIR/server.py"        "$INSTALL_DIR/" || dlg_err "ファイルのコピーに失敗しました。"
+  cp "$REPO_DIR/index.html"       "$INSTALL_DIR/"
+  cp "$REPO_DIR/requirements.txt" "$INSTALL_DIR/"
+else
+  notify "アプリファイルをダウンロード中..."
+  curl -fsSL "$BASE_URL/server.py"        -o "$INSTALL_DIR/server.py"  || dlg_err "ダウンロードに失敗しました。"
+  curl -fsSL "$BASE_URL/index.html"       -o "$INSTALL_DIR/index.html"
+  curl -fsSL "$BASE_URL/requirements.txt" -o "$INSTALL_DIR/requirements.txt"
+fi
 
 # ── Venv + packages ───────────────────────────────────
 notify "Python 環境をセットアップ中..."
